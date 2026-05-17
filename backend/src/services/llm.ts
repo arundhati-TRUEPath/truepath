@@ -4,7 +4,9 @@ import { z } from 'zod';
 import { config } from '../config';
 import { logger } from '../logger';
 import { FOLLOWUP_SYSTEM_PROMPT } from '../prompts/followup-system-prompt';
+import { SKILLS_SYSTEM_PROMPT } from '../prompts/skills-system-prompt';
 import type { IntakeAnswer, Question } from '../types/intake';
+import type { SessionQA } from '../repositories/sessions.repo';
 
 const LlmOptionSchema = z.object({
   option_key: z.string().min(1),
@@ -137,4 +139,67 @@ export async function generateFollowupQuestions(
   const questions = insertDataToQuestions(insertData, validated.data.questions);
 
   return { insertData, questions };
+}
+
+const LlmSkillSchema = z.object({
+  id: z.string().min(1).regex(/^[a-z0-9_]+$/, 'skill id must be lowercase alphanumeric with underscores'),
+  label: z.string().min(1),
+  sub: z.string().min(1),
+  confidence: z.enum(['high', 'medium']),
+  rationale: z.string().min(1),
+});
+
+const LlmSkillsResponseSchema = z.object({
+  skills: z.array(LlmSkillSchema).length(9),
+});
+
+export type LlmSkill = z.infer<typeof LlmSkillSchema>;
+
+function buildSkillsUserMessage(qa: SessionQA[]): string {
+  const lines = qa.map((item, i) => {
+    const labels = item.selectedLabels.join(', ');
+    return `${i + 1}. [${item.questionCategory}] ${item.questionTitle}\n   Answer: ${labels || '(no answer)'}`;
+  });
+  return `Here are the user's responses to all 10 intake questions:\n\n${lines.join('\n\n')}`;
+}
+
+export async function generateSkills(qa: SessionQA[]): Promise<LlmSkill[]> {
+  if (!config.openai.apiKey) {
+    throw new Error('OPENAI_API_KEY is not set.');
+  }
+
+  const client = new OpenAI({ apiKey: config.openai.apiKey });
+  const userMessage = buildSkillsUserMessage(qa);
+
+  const messages = [
+    { role: 'system' as const, content: SKILLS_SYSTEM_PROMPT },
+    { role: 'user' as const, content: userMessage },
+  ];
+
+  logger.info({ event: 'llm_skills_request', model: config.openai.skillsModel });
+
+  const completion = await client.chat.completions.create({
+    model: config.openai.skillsModel,
+    response_format: { type: 'json_object' },
+    messages,
+  });
+
+  const raw = completion.choices[0]?.message?.content;
+  logger.info({ event: 'llm_skills_response', raw });
+  if (!raw) throw new Error('Empty response from OpenAI');
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error('OpenAI returned non-JSON content');
+  }
+
+  const validated = LlmSkillsResponseSchema.safeParse(parsed);
+  if (!validated.success) {
+    logger.error({ event: 'llm_skills_response_invalid', issues: validated.error.issues, raw });
+    throw new Error('LLM skills response did not match expected schema');
+  }
+
+  return validated.data.skills;
 }

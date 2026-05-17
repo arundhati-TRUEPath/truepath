@@ -27,6 +27,9 @@ export default function SkillsGrid({ skills, confirmedIds, onToggle }: SkillsGri
                 <path d="M2.5 6.2l2.4 2.4 4.6-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
+            <span className={`confidence-badge confidence-badge--${s.confidence}`}>
+              {s.confidence === 'high' ? 'High' : 'Medium'}
+            </span>
             <div className="label">{s.label}</div>
             <div className="sub">{s.sub}</div>
           </button>

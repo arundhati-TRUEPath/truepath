@@ -3,6 +3,13 @@ import { DatabaseError } from '../errors/AppError';
 import type { Session, SessionStatus } from '../types/sessions';
 import type { IntakeAnswer } from '../types/intake';
 
+export interface SessionQA {
+  questionTitle: string;
+  questionCategory: string;
+  source: 'seed' | 'ai';
+  selectedLabels: string[];
+}
+
 interface SessionRow {
   id: string;
   created_at: string;
@@ -47,4 +54,59 @@ export async function updateSessionStatus(
     .eq('id', sessionId);
 
   if (error) throw new DatabaseError(error.message);
+}
+
+interface ResponseRow {
+  question_id: string;
+  selected_option_keys: string[];
+  source: 'seed' | 'ai';
+}
+
+interface QuestionWithChoices {
+  id: string;
+  title: string;
+  question_category: string;
+  display_order: number;
+  question_choices: Array<{ option_key: string; label: string }>;
+}
+
+export async function getSessionQA(sessionId: string): Promise<SessionQA[]> {
+  const { data: responses, error: rErr } = await db
+    .from('session_responses')
+    .select('question_id, selected_option_keys, source')
+    .eq('session_id', sessionId);
+
+  if (rErr) throw new DatabaseError(rErr.message);
+  if (!responses || responses.length === 0) return [];
+
+  const rows = responses as ResponseRow[];
+  const questionIds = rows.map((r) => r.question_id);
+
+  const { data: questions, error: qErr } = await db
+    .from('questions')
+    .select('id, title, question_category, display_order, question_choices(option_key, label)')
+    .in('id', questionIds)
+    .order('display_order', { ascending: true });
+
+  if (qErr) throw new DatabaseError(qErr.message);
+  if (!questions) return [];
+
+  const responseMap = new Map(rows.map((r) => [r.question_id, r]));
+  const result: SessionQA[] = [];
+
+  for (const q of questions as QuestionWithChoices[]) {
+    const r = responseMap.get(q.id);
+    if (!r) continue;
+    const selectedLabels = q.question_choices
+      .filter((c) => r.selected_option_keys.includes(c.option_key))
+      .map((c) => c.label);
+    result.push({
+      questionTitle: q.title,
+      questionCategory: q.question_category,
+      source: r.source,
+      selectedLabels,
+    });
+  }
+
+  return result;
 }

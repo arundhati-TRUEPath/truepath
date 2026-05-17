@@ -9,6 +9,9 @@ export function errorMiddleware(
   _next: NextFunction,
 ): void {
   if (err instanceof AppError && err.isOperational) {
+    if (err.statusCode >= 500) {
+      logger.error({ event: 'operational_error', code: err.code, message: err.message });
+    }
     res.status(err.statusCode).json({
       data: null,
       error: { code: err.code, message: err.message },

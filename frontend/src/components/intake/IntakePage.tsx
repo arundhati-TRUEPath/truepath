@@ -7,6 +7,7 @@ import QuestionCard from './QuestionCard';
 import ProgressBar from './ProgressBar';
 
 const SEED_COUNT = 7;
+const IS_DEV = process.env.NODE_ENV !== 'production';
 
 export default function IntakePage(): React.ReactElement {
   const router = useRouter();
@@ -17,12 +18,13 @@ export default function IntakePage(): React.ReactElement {
     answeredCount,
     totalCount,
     seedAnswered,
+    allFollowupsAnswered,
     isLoadingQuestions,
     isSubmittingSeed,
+    isSubmittingFollowup,
     questionsError,
     followupError,
     pick,
-    submitSeed,
     finish,
   } = useIntakeFlow();
 
@@ -42,7 +44,7 @@ export default function IntakePage(): React.ReactElement {
     }
   }, [phase, router]);
 
-  const seedRemaining = SEED_COUNT - Math.min(answeredCount, SEED_COUNT);
+  const remaining = totalCount - answeredCount;
 
   if (questionsError) {
     return (
@@ -142,46 +144,70 @@ export default function IntakePage(): React.ReactElement {
 
       <div className="intake-foot">
         <div className="intake-foot-meta">
-          {phase === 'seed' && !seedAnswered && (
-            <span>{seedRemaining} essential question{seedRemaining === 1 ? '' : 's'} left to unlock your skills.</span>
+          {phase === 'seed' && !seedAnswered && !isSubmittingSeed && (
+            <span>{remaining} essential {remaining === 1 ? 'question' : 'questions'} left.</span>
           )}
-          {phase === 'seed' && seedAnswered && !isSubmittingSeed && (
-            <span>All seven essentials in. Click Continue to get follow-up questions.</span>
+          {isSubmittingSeed && (
+            <span>Personalizing your follow-up questions…</span>
           )}
-          {phase === 'followup' && (
-            <span>All seven essentials in. Follow-ups are optional — continue whenever you're ready.</span>
+          {phase === 'followup' && !isSubmittingSeed && remaining > 0 && (
+            <span>{remaining} more to unlock your skills.</span>
+          )}
+          {phase === 'followup' && !isSubmittingSeed && remaining === 0 && (
+            <span>All done — tap to see your skills.</span>
           )}
         </div>
 
-        {phase === 'seed' && (
-          <button
-            type="button"
-            onClick={submitSeed}
-            disabled={!seedAnswered || isSubmittingSeed}
-            className="btn accent"
-          >
-            {isSubmittingSeed ? 'Reading your answers…' : 'See my skills'}
-            {!isSubmittingSeed && (
-              <svg className="btn-arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </button>
-        )}
-
-        {phase === 'followup' && (
-          <button type="button" onClick={finish} className="btn accent">
-            See my skills
+        <button
+          type="button"
+          onClick={finish}
+          disabled={phase !== 'followup' || !allFollowupsAnswered || isSubmittingSeed || isSubmittingFollowup}
+          className="btn accent"
+        >
+          {isSubmittingFollowup ? 'Saving…' : 'See my skills'}
+          {!isSubmittingFollowup && (
             <svg className="btn-arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </button>
-        )}
+          )}
+        </button>
       </div>
 
       <div className="intake-fineprint">
         Your answers stay on this device. No account is created.
       </div>
+
+      {IS_DEV && (
+        <div style={{ position: 'fixed', bottom: 16, left: 16, display: 'flex', gap: 8, zIndex: 9999 }}>
+          <button
+            type="button"
+            onClick={() => {
+              questions.slice(0, SEED_COUNT).forEach((q) => {
+                const first = q.options[0];
+                if (first) pick(q.id, first.id, !!q.multi);
+              });
+            }}
+            disabled={isLoadingQuestions || questions.length < SEED_COUNT}
+            style={{ fontSize: 11, padding: '4px 10px', background: '#1a1a2e', color: '#7ecaff', border: '1px solid #7ecaff', borderRadius: 6, cursor: 'pointer', fontFamily: 'monospace' }}
+          >
+            DEV: fill seed
+          </button>
+          {phase === 'followup' && questions.length > SEED_COUNT && (
+            <button
+              type="button"
+              onClick={() => {
+                questions.slice(SEED_COUNT).forEach((q) => {
+                  const first = q.options[0];
+                  if (first) pick(q.id, first.id, !!q.multi);
+                });
+              }}
+              style={{ fontSize: 11, padding: '4px 10px', background: '#1a1a2e', color: '#7ecaff', border: '1px solid #7ecaff', borderRadius: 6, cursor: 'pointer', fontFamily: 'monospace' }}
+            >
+              DEV: fill followup
+            </button>
+          )}
+        </div>
+      )}
     </main>
   );
 }

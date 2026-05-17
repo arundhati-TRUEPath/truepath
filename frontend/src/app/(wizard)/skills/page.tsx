@@ -5,7 +5,23 @@ import SkillsGrid from '@/components/skills/SkillsGrid';
 import SkillsRationale from '@/components/skills/SkillsRationale';
 
 export default function SkillsPage(): React.ReactElement {
-  const { isLoading, skills, confirmedIds, toggle, confirm, goBack } = useSkillsFlow();
+  const { isLoading, isConfirming, skills, rationale, confirmedIds, error, toggle, confirm, goBack } = useSkillsFlow();
+
+  if (error) {
+    return (
+      <main className="page page-narrow step-frame" style={{ textAlign: 'center', paddingTop: 80 }}>
+        <p style={{ color: 'var(--ink)', fontWeight: 500 }}>Couldn't load your skills.</p>
+        <p style={{ fontSize: 13, color: 'var(--mute)', marginTop: 8 }}>{error.message}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          style={{ background: 'none', border: 0, color: 'var(--sage)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', marginTop: 12 }}
+        >
+          Try again
+        </button>
+      </main>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -17,9 +33,6 @@ export default function SkillsPage(): React.ReactElement {
         <h2 className="display" style={{ marginTop: 24, fontSize: 36 }}>
           Pulling together the skills we see in you.
         </h2>
-        <p className="lede" style={{ margin: '12px auto 0' }}>
-          We're cross-referencing your answers against O*NET task data.
-        </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 40, maxWidth: 680, marginInline: 'auto' }}>
           {Array.from({ length: 9 }).map((_, i) => (
             <div
@@ -47,7 +60,7 @@ export default function SkillsPage(): React.ReactElement {
       </div>
 
       <SkillsRationale
-        rationale="From your caregiving background, weekday-evening availability, and stated preference for hands-on work, we pre-selected the skills below."
+        rationale={rationale}
         confirmedCount={confirmedIds.length}
         totalCount={skills.length}
       />
@@ -65,7 +78,7 @@ export default function SkillsPage(): React.ReactElement {
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <button type="button" className="btn accent" onClick={confirm} disabled={confirmedIds.length < 3}>
+          <button type="button" className="btn accent" onClick={confirm} disabled={confirmedIds.length < 3 || isConfirming}>
             Show me pathways
             <svg className="btn-arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

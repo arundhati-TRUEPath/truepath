@@ -19,7 +19,22 @@
       "Skill(update-config)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\" -Recurse -Directory | Select-Object -ExpandProperty FullName | Where-Object {$_ -match \"\\(migration|schema|prisma\\)\" } | Sort-Object)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\" -Depth 2 -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName | Where-Object {-not \\($_ -match 'node_modules|\\\\.next'\\)} | Sort-Object)",
-      "PowerShell(Start-Process powershell -ArgumentList '-NoExit', '-Command', \"Set-Location 'C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\backend'; npm run dev\")"
+      "PowerShell(Start-Process powershell -ArgumentList '-NoExit', '-Command', \"Set-Location 'C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\backend'; npm run dev\")",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\backend\" -Recurse -Depth 2 -Force | Where-Object { -not $_.PSIsContainer -or $_.Name -like \"node_modules\" -eq $false } | Select-Object FullName | Sort-Object)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\frontend\" -Recurse -Depth 2 -Force | Where-Object { -not $_.PSIsContainer -or $_.Name -like \"node_modules\" -eq $false } | Select-Object FullName | Sort-Object)",
+      "PowerShell(ls *)",
+      "PowerShell([System.IO.Directory]::GetDirectories\\(\"C:\\\\Program Files\"\\) | ForEach-Object { [System.IO.Path]::GetFileName\\($_\\) })",
+      "PowerShell([System.IO.Directory]::GetDirectories\\(\"C:\\\\Program Files \\(x86\\)\"\\) | ForEach-Object { [System.IO.Path]::GetFileName\\($_\\) })",
+      "PowerShell(where.exe git 2>$null; [System.IO.Directory]::GetFiles\\(\"C:\\\\Users\\\\ArundhatiRoy\", \"git.exe\", \"AllDirectories\"\\) 2>$null | Select-Object -First 3)",
+      "PowerShell($env:PATH -split ';')",
+      "PowerShell([System.IO.Directory]::GetFileSystemEntries\\(\"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\"\\) | ForEach-Object { [System.IO.Path]::GetFileName\\($_\\) })",
+      "PowerShell(& \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\node-v24.15.0\\\\node_modules\\\\npm\\\\bin\\\\npx.cmd\" --yes whereis git 2>$null; Test-Path \"C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe\")",
+      "PowerShell($PROFILE | Out-String; [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) -split ';' | Where-Object { $_ -ne \"\" })",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\) -split ';' | Where-Object { $_ -ne \"\" })",
+      "PowerShell(Test-Path *)",
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\bin;C:\\\\Program Files\\\\Git\\\\cmd\"; Set-Location \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\"; git status)",
+      "PowerShell(pip *)",
+      "PowerShell(py *)"
     ]
   }
 }

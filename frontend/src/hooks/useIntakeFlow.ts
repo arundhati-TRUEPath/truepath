@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { fetchSeedQuestions, submitSeedAnswers, submitFollowupAnswers, startSession } from '@/lib/api/endpoints';
 import { useSessionStore } from '@/lib/store/session';
@@ -24,7 +24,6 @@ interface IntakeFlowState {
   followupError: AppError | null;
   followupSubmitError: AppError | null;
   pick: (questionId: string, optionId: string, multi: boolean) => void;
-  submitSeed: () => void;
   finish: () => void;
 }
 
@@ -110,7 +109,37 @@ export function useIntakeFlow(): IntakeFlowState {
   const answeredCount = visibleQuestions.filter((q) => (answers[q.id] ?? []).length > 0).length;
   const totalCount = phase === 'seed' ? SEED_COUNT : SEED_COUNT + followupQuestions.length;
 
-  function submitSeed() {
+  const seedAnswersSig = seedQuestions
+    .map((q) => (answers[q.id] ?? []).join(','))
+    .join('|');
+
+  const prevSeedSigRef = useRef('');
+  const seedAutoFiredRef = useRef(false);
+
+  // Auto-submit when all 7 seed questions are answered
+  useEffect(() => {
+    if (!seedAnswered || phase !== 'seed' || followupMutation.isPending || seedAutoFiredRef.current) return;
+    const sid = sessionId || sessionQuery.data?.sessionId;
+    if (!sid) return;
+    seedAutoFiredRef.current = true;
+    prevSeedSigRef.current = seedAnswersSig;
+    const intakeAnswers: IntakeAnswer[] = seedQuestions.map((q) => ({
+      questionId: q.id,
+      optionIds: answers[q.id] ?? [],
+    }));
+    setIntakeAnswers(intakeAnswers);
+    followupMutation.mutate({ sid, ans: intakeAnswers });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedAnswered, phase, sessionId]);
+
+  // Auto-refetch AI questions when any seed answer changes during followup phase
+  useEffect(() => {
+    if (phase !== 'followup') {
+      prevSeedSigRef.current = seedAnswersSig;
+      return;
+    }
+    if (!seedAnswered || seedAnswersSig === prevSeedSigRef.current || followupMutation.isPending) return;
+    prevSeedSigRef.current = seedAnswersSig;
     const sid = sessionId || sessionQuery.data?.sessionId;
     if (!sid) return;
     const intakeAnswers: IntakeAnswer[] = seedQuestions.map((q) => ({
@@ -119,7 +148,8 @@ export function useIntakeFlow(): IntakeFlowState {
     }));
     setIntakeAnswers(intakeAnswers);
     followupMutation.mutate({ sid, ans: intakeAnswers });
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedAnswersSig, phase]);
 
   function finish() {
     const sid = sessionId || sessionQuery.data?.sessionId;
@@ -153,7 +183,6 @@ export function useIntakeFlow(): IntakeFlowState {
     followupError: followupMutation.error,
     followupSubmitError: followupSubmitMutation.error,
     pick,
-    submitSeed,
     finish,
   };
 }

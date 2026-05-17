@@ -33,10 +33,15 @@ export const submitFollowupAnswers = (
     .post<ApiResponse<{ status: string }>>(`${v1}/intake/followup/submit`, { sessionId, answers })
     .then((r) => r.data.data!);
 
-export const inferSkills = (answers: IntakeAnswer[]): Promise<SkillsResponse> =>
+export const inferSkills = (sessionId: string): Promise<SkillsResponse> =>
   client
-    .post<SkillsResponse>(`${v1}/skills/infer`, { answers })
-    .then((r) => r.data);
+    .post<ApiResponse<SkillsResponse>>(`${v1}/skills/infer`, { sessionId })
+    .then((r) => r.data.data!);
+
+export const confirmSkills = (sessionId: string, confirmedIds: string[]): Promise<void> =>
+  client
+    .post<ApiResponse<{ status: string }>>(`${v1}/skills/confirm`, { sessionId, confirmedIds })
+    .then(() => undefined);
 
 export const recommendPathways = (
   answers: IntakeAnswer[],

@@ -14,7 +14,12 @@
       "PowerShell(head *)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\docs\\\\prototype\" -Recurse | ForEach-Object { $_.FullName })",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\frontend\\\\src\" -Recurse | ForEach-Object { $_.FullName })",
-      "PowerShell(cd \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\frontend\"; $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 10; $r.Content.Substring\\(0, 3000\\))"
+      "PowerShell(cd \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\frontend\"; $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 10; $r.Content.Substring\\(0, 3000\\))",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Skill(update-config)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\" -Recurse -Directory | Select-Object -ExpandProperty FullName | Where-Object {$_ -match \"\\(migration|schema|prisma\\)\" } | Sort-Object)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\" -Depth 2 -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName | Where-Object {-not \\($_ -match 'node_modules|\\\\.next'\\)} | Sort-Object)",
+      "PowerShell(Start-Process powershell -ArgumentList '-NoExit', '-Command', \"Set-Location 'C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\backend'; npm run dev\")"
     ]
   }
 }

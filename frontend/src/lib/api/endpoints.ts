@@ -25,6 +25,14 @@ export const submitSeedAnswers = (
     .post<ApiResponse<FollowupResponse>>(`${v1}/intake/followup`, { sessionId, answers })
     .then((r) => r.data.data!);
 
+export const submitFollowupAnswers = (
+  sessionId: string,
+  answers: IntakeAnswer[],
+): Promise<{ status: string }> =>
+  client
+    .post<ApiResponse<{ status: string }>>(`${v1}/intake/followup/submit`, { sessionId, answers })
+    .then((r) => r.data.data!);
+
 export const inferSkills = (answers: IntakeAnswer[]): Promise<SkillsResponse> =>
   client
     .post<SkillsResponse>(`${v1}/skills/infer`, { answers })

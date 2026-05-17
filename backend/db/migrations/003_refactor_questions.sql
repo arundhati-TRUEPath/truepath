@@ -1,6 +1,57 @@
--- Seed: 7 intake seed questions with answer choices
--- Uses a DO block because questions.id is now UUID (auto-generated); choices need those IDs.
+-- Migration 003: Refactor questions schema
+-- Drops and recreates questions, question_choices, session_responses with new structure.
+-- Execute this in the Supabase SQL editor. Existing data will be cleared.
 
+-- 1. Drop tables in dependency order
+DROP TABLE IF EXISTS session_responses;
+DROP TABLE IF EXISTS question_choices;
+DROP TABLE IF EXISTS questions;
+
+-- 2. Recreate questions
+CREATE TABLE questions (
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  title             TEXT        NOT NULL,
+  hint              TEXT        NOT NULL,
+  is_multi          BOOLEAN     NOT NULL DEFAULT FALSE,
+  layout            TEXT        NOT NULL DEFAULT 'wrap'
+                    CHECK (layout IN ('wrap', 'column')),
+  display_order     INTEGER     NOT NULL,
+  source            TEXT        NOT NULL DEFAULT 'seed'
+                    CHECK (source IN ('seed', 'ai')),
+  ai_id             TEXT,
+  question_category TEXT        NOT NULL
+);
+
+-- 3. Recreate question_choices with UUID FK
+CREATE TABLE question_choices (
+  id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+  question_id     UUID    NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  option_key      TEXT    NOT NULL,
+  label           TEXT    NOT NULL,
+  display_order   INTEGER NOT NULL,
+  UNIQUE (question_id, option_key)
+);
+
+-- 4. Recreate session_responses (question_type renamed to source, question_id now UUID)
+CREATE TABLE session_responses (
+  id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id            UUID        NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  question_id           UUID        NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  selected_option_keys  TEXT[]      NOT NULL,
+  source                TEXT        NOT NULL DEFAULT 'seed'
+                        CHECK (source IN ('seed', 'ai')),
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_session_responses_session_id ON session_responses(session_id);
+CREATE INDEX idx_question_choices_question_id ON question_choices(question_id);
+
+-- 5. Disable RLS (no direct browser access — all traffic through Express)
+ALTER TABLE questions         DISABLE ROW LEVEL SECURITY;
+ALTER TABLE question_choices  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE session_responses DISABLE ROW LEVEL SECURITY;
+
+-- 6. Insert seed questions and their choices using a DO block to capture auto-generated UUIDs
 DO $$
 DECLARE
   v_situation   UUID;

@@ -24,13 +24,13 @@ export async function createSession(): Promise<Session> {
 export async function saveResponses(
   sessionId: string,
   answers: IntakeAnswer[],
-  questionType: 'seed' | 'followup',
+  source: 'seed' | 'ai',
 ): Promise<void> {
   const rows = answers.map((a) => ({
     session_id: sessionId,
     question_id: a.questionId,
     selected_option_keys: a.optionIds,
-    question_type: questionType,
+    source,
   }));
 
   const { error } = await db.from('session_responses').insert(rows);

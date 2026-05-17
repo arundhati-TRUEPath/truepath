@@ -7,3 +7,4 @@ backend/node_modules
 !**/.env.local.example
 .next
 dist
+*.log

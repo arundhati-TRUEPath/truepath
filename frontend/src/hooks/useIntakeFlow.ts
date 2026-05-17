@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { fetchSeedQuestions, submitSeedAnswers, startSession } from '@/lib/api/endpoints';
+import { fetchSeedQuestions, submitSeedAnswers, submitFollowupAnswers, startSession } from '@/lib/api/endpoints';
 import { useSessionStore } from '@/lib/store/session';
 import type { IntakeAnswer, Question } from '@/lib/types/intake';
 import type { AppError } from '@/lib/api/client';
@@ -19,8 +19,10 @@ interface IntakeFlowState {
   allFollowupsAnswered: boolean;
   isLoadingQuestions: boolean;
   isSubmittingSeed: boolean;
+  isSubmittingFollowup: boolean;
   questionsError: AppError | null;
   followupError: AppError | null;
+  followupSubmitError: AppError | null;
   pick: (questionId: string, optionId: string, multi: boolean) => void;
   submitSeed: () => void;
   finish: () => void;
@@ -61,6 +63,17 @@ export function useIntakeFlow(): IntakeFlowState {
       setLocalFollowups(data.questions);
       setFollowupQuestions(data.questions);
       setPhase('followup');
+    },
+  });
+
+  const followupSubmitMutation = useMutation<
+    { status: string },
+    AppError,
+    { sid: string; ans: IntakeAnswer[] }
+  >({
+    mutationFn: ({ sid, ans }) => submitFollowupAnswers(sid, ans),
+    onSuccess: () => {
+      setPhase('done');
     },
   });
 
@@ -109,12 +122,20 @@ export function useIntakeFlow(): IntakeFlowState {
   }
 
   function finish() {
-    const allAnswers: IntakeAnswer[] = visibleQuestions.map((q) => ({
-      questionId: q.id,
-      optionIds: answers[q.id] ?? [],
-    }));
+    const sid = sessionId || sessionQuery.data?.sessionId;
+    if (!sid) return;
+
+    const followupAnswers: IntakeAnswer[] = followupQuestions
+      .map((q) => ({ questionId: q.id, optionIds: answers[q.id] ?? [] }))
+      .filter((a) => a.optionIds.length > 0);
+
+    const allAnswers: IntakeAnswer[] = [
+      ...seedQuestions.map((q) => ({ questionId: q.id, optionIds: answers[q.id] ?? [] })),
+      ...followupAnswers,
+    ];
     setIntakeAnswers(allAnswers);
-    setPhase('done');
+
+    followupSubmitMutation.mutate({ sid, ans: followupAnswers });
   }
 
   return {
@@ -127,8 +148,10 @@ export function useIntakeFlow(): IntakeFlowState {
     allFollowupsAnswered,
     isLoadingQuestions: questionsQuery.isLoading || sessionQuery.isLoading,
     isSubmittingSeed: followupMutation.isPending,
+    isSubmittingFollowup: followupSubmitMutation.isPending,
     questionsError: questionsQuery.error as AppError | null,
     followupError: followupMutation.error,
+    followupSubmitError: followupSubmitMutation.error,
     pick,
     submitSeed,
     finish,

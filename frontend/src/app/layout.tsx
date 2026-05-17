@@ -19,6 +19,7 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: 'TRUE Path Navigator',
   description: 'From where you are — to a healthcare career.',
+  icons: { icon: '/logo.png' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

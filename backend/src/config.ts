@@ -1,4 +1,7 @@
-import 'dotenv/config';
+import { config as dotenv } from 'dotenv';
+import { resolve } from 'path';
+
+dotenv({ path: resolve(__dirname, '../.env') });
 
 function requireEnv(name: string): string {
   const val = process.env[name];
@@ -16,6 +19,7 @@ export const config = {
   openai: {
     apiKey: optional('OPENAI_API_KEY', ''),
     model: optional('OPENAI_MODEL', 'gpt-4o'),
+    followupModel: optional('OPENAI_FOLLOWUP_MODEL', 'gpt-4.1-mini'),
     embeddingModel: optional('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small'),
   },
   supabase: {

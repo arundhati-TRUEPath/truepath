@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper:        #F5F0EB;
+  --paper-2:      #EDE3D4;
+  --card:         #FFFFFF;
+  --card-tint:    #FAF4EC;
+  --ink:          #2E1F18;
+  --ink-2:        #5A4338;
+  --mute:         #8C7A6E;
+  --mute-2:       #B7A89D;
+  --line:         #E5DACC;
+  --line-2:       #EFE5D5;
+  --line-strong:  #CDB9A2;
+  --sage:         #CE6A49;
+  --sage-deep:    #B94A3E;
+  --sage-soft:    #F0DCCA;
+  --sage-soft-2:  #D9BBA7;
+  --amber:        #7F5A44;
+  --amber-soft:   #ECDBC6;
+  --clay:         #7F5A44;
+  --clay-soft:    #EBD8C5;
+  --shadow-sm:    0 1px 0 rgba(46,31,24,0.04), 0 1px 2px rgba(46,31,24,0.04);
+  --shadow-md:    0 1px 0 rgba(46,31,24,0.04), 0 8px 24px -12px rgba(46,31,24,0.18);
+  --shadow-lg:    0 1px 0 rgba(46,31,24,0.04), 0 28px 64px -28px rgba(46,31,24,0.32);
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--sage-soft);
+    color: var(--ink);
+  }
+}
+
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+
+  @keyframes stepIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .animate-step-in { animation: stepIn 500ms cubic-bezier(.2,.7,.2,1); }
+
+  @keyframes ping-ring {
+    0%   { transform: scale(.6); opacity: .7; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  .animate-ping-ring { animation: ping-ring 1.6s ease-out infinite; }
+
+  @keyframes reveal-fu {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .animate-reveal-fu { animation: reveal-fu 500ms cubic-bezier(.2,.7,.2,1); }
+}

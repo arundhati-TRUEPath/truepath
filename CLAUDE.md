@@ -26,9 +26,11 @@ Opus handles planning. Sonnet handles execution. Switches automatically.
 
 ## Prompt Rules (follow these to reduce token waste)
 
+- Always act like a professional principal software engineer
 - One concern per message. Never bundle multiple asks.
 - Be specific: name the file, function, or line. Don't say "look at the codebase."
 - Skip explanations unless you need them. "Implement X" not "Implement X and explain why."
+- Reduce verbosity
 - Prefer targeted edits over full file rewrites.
 - Use `ultrathink` in your prompt only for genuinely hard reasoning (concurrency bugs, security design). It spends tokens aggressively.
 

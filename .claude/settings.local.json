@@ -34,7 +34,8 @@
       "PowerShell(Test-Path *)",
       "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\bin;C:\\\\Program Files\\\\Git\\\\cmd\"; Set-Location \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\"; git status)",
       "PowerShell(pip *)",
-      "PowerShell(py *)"
+      "PowerShell(py *)",
+      "PowerShell(ls \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\frontend\" -Name | Where-Object { $_ -match \"^\\(dev|scripts\\)\" })"
     ]
   }
 }

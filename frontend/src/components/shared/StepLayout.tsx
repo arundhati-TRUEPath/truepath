@@ -3,6 +3,6 @@ interface StepLayoutProps {
   narrow?: boolean;
 }
 
-export default function StepLayout({ children, narrow }: StepLayoutProps) {
+export default function StepLayout({ children, narrow }: StepLayoutProps): React.ReactElement | null {
   return null;
 }

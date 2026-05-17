@@ -1,8 +1,9 @@
 import { createApp } from './app';
 import { config } from './config';
+import { logger } from './logger';
 
 const app = createApp();
 
 app.listen(config.port, () => {
-  console.log(`Backend running on http://localhost:${config.port}`);
+  logger.info({ event: 'server_start', port: config.port });
 });

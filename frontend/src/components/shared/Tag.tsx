@@ -5,6 +5,6 @@ interface TagProps {
   tone?: TagTone;
 }
 
-export default function Tag({ children, tone }: TagProps) {
+export default function Tag({ children, tone }: TagProps): React.ReactElement | null {
   return null;
 }

@@ -1,5 +1,45 @@
 # CLAUDE.md
 
+## Engineering Constitution
+
+These rules apply to every line of code in every task. They are not guidelines — they are hard constraints.
+
+### Type Safety
+- `any` is forbidden. Treat it as a build failure.
+- All external input (requests, env vars, third-party responses) validated with Zod at the system boundary before use.
+- `tsc --noEmit` must pass with zero errors before a task is considered done.
+
+### Error Handling
+- Every async path has explicit error handling — no floating promises.
+- Never swallow errors silently. Every `catch` either handles, re-throws, or logs with justification.
+
+### Security
+- No raw string SQL — parameterized queries only.
+- No secrets in source code, config files, or logs — environment variables only.
+- Auth/authz checked at the route boundary before any handler logic runs.
+
+### Structure & Maintainability
+- Functions do one thing, max ~50 lines. If the name contains "and", split it.
+- Guard clauses over nested conditionals — return early.
+- No dead code, no commented-out code, no TODOs without a linked issue.
+- Dependencies flow one direction: UI → service → data. No circular imports.
+
+### Change Safety
+- Before changing shared code: grep for all callers first.
+- Stay within the stated task scope — do not touch code outside the task boundary.
+- A change touching >5 unrelated files signals a design problem — stop and redesign.
+- Never expose DB model shapes directly through API responses.
+
+### Testing
+- Business logic has unit tests. API endpoints have integration tests against a real DB.
+- No database mocks in integration tests.
+
+### Constitution Files
+Detailed rules for each domain live in `.claude/constitution/`:
+`const_types` · `const_errors` · `const_security` · `const_testing` · `const_data` · `const_api` · `const_ui` · `const_observability` · `const_structure` · `const_change`
+
+---
+
 ## Default Model
 Always start with:
 ```

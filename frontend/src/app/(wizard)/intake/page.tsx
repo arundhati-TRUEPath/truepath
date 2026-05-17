@@ -1,5 +1,7 @@
-﻿'use client';
+'use client';
 
-export default function IntakePage() {
-  return null;
+import IntakePage from '@/components/intake/IntakePage';
+
+export default function IntakeRoute(): React.ReactElement {
+  return <IntakePage />;
 }

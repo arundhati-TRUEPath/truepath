@@ -19,6 +19,5 @@ export interface IntakeAnswer {
 }
 
 export interface FollowupResponse {
-  question: Question | null;
-  done: boolean;
+  questions: Question[];
 }

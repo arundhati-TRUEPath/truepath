@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Instrument_Sans, Instrument_Serif } from 'next/font/google';
+import Providers from './providers';
 import '@/styles/globals.css';
 
 const instrumentSans = Instrument_Sans({
@@ -23,7 +24,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${instrumentSans.variable} ${instrumentSerif.variable}`}>
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

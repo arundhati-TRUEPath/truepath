@@ -6,6 +6,6 @@ export default function ErrorPage({
 }: {
   error: Error & { digest?: string };
   reset: () => void;
-}) {
+}): React.ReactElement | null {
   return null;
 }

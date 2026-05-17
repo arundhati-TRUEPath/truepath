@@ -12,7 +12,7 @@ const stepGuards: Record<Step, (s: ReturnType<typeof useSessionStore.getState>) 
   plan:     (s) => s.pathways.length > 0,
 };
 
-export function useRequireStep(step: Step) {
+export function useRequireStep(step: Step): void {
   const router = useRouter();
   const store = useSessionStore();
 

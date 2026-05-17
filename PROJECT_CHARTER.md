@@ -7,7 +7,7 @@
 | **Project Name** | TRUE Path Navigator                      |
 | **Version**    | 1.0                                        |
 | **Date**       | May 2026                                   |
-| **Status**     | MVP Phase — Active                         |
+| **Status**     | MVP (Minimum Viable Product) Phase — Active                         |
 | **Owner**      | Career Path Services |
 
 ---
@@ -42,7 +42,7 @@ To give every jobseeker in King County — regardless of education, language, or
 ## 4. Objectives & Success Metrics
 
 ### Primary Objective
-Deliver a demo-ready MVP by July 2026 that proves the core AI-guided pathway experience end-to-end.
+Deliver a production-ready MVP by July 2026 that proves the core AI-guided pathway experience end-to-end.
 
 ### KPIs & Targets
 
@@ -53,7 +53,6 @@ Deliver a demo-ready MVP by July 2026 that proves the core AI-guided pathway exp
 | Intake completion rate | Tracked via drop-off analytics per step | Event analytics |
 | AI recommendation confidence | Confidence score reported per recommendation | Backend scoring output |
 | User engagement time | Baseline to be set in alpha; watch for extreme outliers | Session duration analytics |
-| Demo readiness | Full end-to-end workflow live for GitLab Foundation demo | September 2026 milestone |
 
 ### Analytics Signals (Operational)
 - Drop-off rate at each intake question
@@ -67,17 +66,18 @@ Deliver a demo-ready MVP by July 2026 that proves the core AI-guided pathway exp
 
 ### In Scope — MVP Features
 
+- **Start Intake** —  Pull 6 static questions from the database and present them to the user to begin the intake flow.
 - **Dynamic Intake Flow** — pill/button-driven guided questions (no free-text); AI generates contextual follow-up questions in real time based on prior answers
-- **Skills Assessment** — AI infers transferable skills from intake responses; presented as a selectable grid with brief AI rationale; sourced from O*NET task data
+- **Skills Assessment** — AI infers transferable skills from intake responses; presented as a selectable grid with brief AI rationale; sourced from O*NET task data (this will be sourced from an input excel file)
 - **Career Map** — three recommended healthcare career pathways per user; each card includes role title, wage range, career ladder, and relevant tags (e.g., evening classes, WIOA eligible)
 - **Limitations Panel** — honest, AI-generated summary of constraints above the pathway cards (schedule conflicts, credential gaps, program availability)
-- **PDF Output** — AI-generated (not template-filled) action plan with background summary, top pathway with career ladder, three next steps, support resources, data source citation, and CPS contact
+- **PDF Output** — AI-generated (based on a template defined) action plan with background summary, top pathway with career ladder, three next steps, support resources, data source citation, and CPS contact
 - **AI Recommendation Layer** — LLM-powered ranking by fit, barriers, training length, wage potential, and advancement; explainable reasoning with confidence scoring
-- **RAG Grounding** — all pathway recommendations grounded in SeaKing WDC workforce data via retrieval-augmented generation
+- **RAG Grounding** — all pathway recommendations grounded in O*NET task data  via retrieval-augmented generation
 
 ### Out of Scope — MVP
 
-The following will **not** be built for the MVP:
+The following will **not** be built for the MVP: Do not include these in further steps of intent development or architecture
 
 - Account creation or user login (sessions are stateless)
 - Resume upload or skill extraction from files
@@ -91,45 +91,65 @@ The following will **not** be built for the MVP:
 
 ---
 
-## 6. Stakeholders & User Personas
-
-### Stakeholders
-
-| Stakeholder | Role | Interest |
-|-------------|------|----------|
-| Career Path Services (CPS) | Product Owner / Funder | Deliver a working MVP; reduce case manager burden |
-| SeaKing Workforce Development Council (WDC) | Data Partner | Ensure workforce data is accurately surfaced |
-| GitLab Foundation | Demo Audience / Funder | See live end-to-end workflow by September 2026 |
-| Case Managers | Internal Pilot Users | Validate pathway accuracy; provide feedback in alpha |
-| Jobseekers (King County) | End Users | Receive clear, actionable career guidance |
+## 6. User Personas
 
 ### User Personas
 
-**Persona 1 — Maria (Career Changer)**
-- Age 28, retail worker seeking stable income
+**Persona 1 — Career Changer**
 - Needs a clear entry pathway into healthcare without navigating certification complexity
 - Pain points: overwhelmed by options, does not understand certification ladders
 - Motivations: higher wages, job stability
+- Example Persona : Age 28, Maria, retail worker seeking stable income
 
-**Persona 2 — Sofia (Young Adult / Community College Student)**
-- Age 22, part-time worker enrolled at community college
+**Persona 2 — Young Adult / Community College Student**
 - Needs affordable healthcare career options that do not require a four-year degree
 - Pain points: limited career guidance, unsure where to start
 - Motivations: meaningful work, financial independence, long-term advancement
+- Example Persona : Age 22, part-time worker enrolled at community college
 
-**Persona 3 — Priya (Internationally Trained Healthcare Worker)**
-- Age 34, internationally trained nurse with 8 years of experience, recently arrived in the U.S.
+**Persona 3 — Internationally Trained Healthcare Worker**
 - Needs clear guidance on credential evaluation, U.S. licensing requirements, and re-entry pathways
 - Pain points: confusing licensing system, lack of U.S. healthcare network, financial pressure
 - Motivations: career continuity, professional recognition, financial stability
+- Example Persona : Age 34, internationally trained nurse with 8 years of experience, recently arrived in the U.S.
 
-**Additional Target Use Cases (MVP must serve)**
-- Dislocated workers seeking stable employment after layoffs
-- Immigrants and ESL learners needing simplified pathway guidance
-- Parents returning to work who require evening or online programs
-- Gig workers seeking stable schedules and benefits
-- Rural jobseekers needing local or hybrid training options
-- Advancement-focused workers pursuing stackable credentials (e.g., CNA → LPN → RN)
+** Persona 4 - Dislocated Worker **
+- Needs: Clear transition pathways into stable healthcare careers with short-term training options and transferable skills guidance.
+- Pain Points: Uncertain how previous work experience applies to healthcare; financial pressure after job loss; overwhelmed by certifications and education requirements; - concerned about returning to school later in life.
+- Motivations: Stable employment; reliable income and benefits; faster workforce re-entry; long-term career security and advancement opportunities.
+- Age: 42,Former warehouse and logistics supervisor with 15 years of experience who was recently laid off due to automation and restructuring.
+
+** Persona 5 - Immigrant / ESL Learner** 
+- Needs Simplified healthcare career guidance with clear explanations of training programs, certifications, and next steps.
+- Pain Points: Language barriers; unfamiliar workforce systems; difficulty understanding technical terminology; limited professional network in the U.S.
+- Motivations: Financial independence; meaningful work; career growth opportunities; long-term stability for family.
+ Age 31, Recently immigrated to the U.S. with prior caregiving and customer service experience. English is her second language.
+
+**Persona 6: Parent Returning to Work**
+- Needs: Flexible healthcare training programs with evening, weekend, online, or hybrid learning options.
+- Pain Points: Balancing childcare responsibilities with education and work; limited time availability; anxiety about re-entering the workforce; need for predictable scheduling.
+- Motivations: Financial stability; independence and confidence; stable employment with flexibility; long-term career growth.
+- Example Persona :Age 37,Former administrative assistant returning to the workforce after several years focused on caregiving responsibilities.
+
+**Persona 7: Gig Worker Seeking Stability**
+- Needs: Structured career pathways into healthcare roles that provide stable schedules, benefits, and advancement opportunities.
+- Pain Points: Unpredictable income; burnout from unstable schedules; lack of healthcare coverage and benefits; uncertainty about suitable healthcare careers.
+- Motivations: Stable paycheck and benefits; work-life balance; long-term financial security; structured career growth.
+- Example Persona: Age 29,Works multiple gig economy jobs including rideshare and food delivery with inconsistent income and no benefits.
+
+**Persona 8: Rural Jobseeker**
+- Example Persona: Age 26,Lives in a rural community with limited local training and employment opportunities but is interested in healthcare careers.
+- Needs: Access to local, online, or hybrid healthcare training programs connected to nearby employers.
+- Pain Points: Limited transportation; fewer educational institutions nearby; lack of awareness about available pathways; limited local healthcare career guidance.
+- Motivations: Remain within local community; stable career opportunities; meaningful community impact; accessible training options.
+
+**Persona 9: Advancement-Focused Healthcare Worker**
+
+- Needs: Clear stackable credential pathways with timelines, certification requirements, salary progression, and advancement guidance.
+- Pain Points: Difficulty navigating advancement pathways; balancing work with continued education; financial concerns related to training costs; lack of personalized career planning support.
+- Motivations: Higher earning potential; professional recognition; long-term career advancement; greater family stability.
+- Example Persona: Age 33,Currently working as a CNA with 5 years of experience and seeking advancement into higher-paying nursing and healthcare roles.
+
 
 ---
 
@@ -149,65 +169,3 @@ The following will **not** be built for the MVP:
 
 ---
 
-## 8. Technical Architecture
-
-### Frontend
-- **Framework:** React + Vite
-- **Styling:** Tailwind CSS
-- **Hosting:** Vercel or Netlify
-- **Design principle:** Pill/button-first UI; no free-text input required for intake
-
-### Backend
-- **Framework:** Python FastAPI
-- **Data Validation:** Pydantic
-- **Hosting:** Render, Railway, or Azure
-- **API boundary:** All AI calls routed through backend only; no direct client-side LLM access
-
-### AI Layer
-- **LLM Provider:** OpenAI GPT-4o (via backend API)
-- **Prompt Management:** Reusable, version-controlled prompt templates
-- **Recommendation Logic:** Intake responses + workforce data + training data → ranked pathway output
-- **Explainability:** Each recommendation includes a plain-language rationale (e.g., *"Medical Assistant was recommended because the user prefers patient-facing work, has customer service experience, and is seeking a short-term training pathway."*)
-- **Confidence Scoring:** Per-recommendation confidence score; error handling for low-confidence outputs
-- **RAG Pipeline:** Retrieval-augmented generation grounded in SeaKing WDC data; no hallucinated program or wage data permitted
-
-### Data Layer
-- **Current (MVP):** State workforce data ingested and indexed for RAG retrieval
-- **Future:** PostgreSQL + pgvector for persistent vector storage
-- **Skill Mapping Source:** O*NET task data mapped to healthcare role requirements
-
-### PDF Generation
-- **Library:** ReportLab or WeasyPrint
-- **Output:** AI-generated narrative plan (not a static template); includes data citations, case manager disclaimer, and CPS contact information
-
-### Example Stackable Pathways (Data Seeded)
-- CNA → LPN → RN
-- Dental Assistant → EFDA → Registered Dental Hygienist
-- Medical Assistant → Healthcare Administrator
-- Phlebotomist → Medical Laboratory Technician
-
----
-
-## 9. Risks & Assumptions
-
-### Risks
-
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| AI generates inaccurate pathway or wage data | Medium | High | RAG grounding in verified WDC data; confidence scoring; case manager disclaimer on all outputs |
-| SeaKing WDC data is incomplete or stale | Medium | High | Data validation sprint in April; define refresh cadence before alpha |
-| Intake flow is too complex for low-literacy or ESL users | Medium | High | Pill/button UI removes typing burden; plain language review in accessibility pass (July) |
-| LLM output variability reduces consistency across sessions | Medium | Medium | Version-controlled prompts; golden test scenarios run against every model update |
-| PDF output quality is insufficient for case manager use | Low | Medium | Case manager pilot in July provides direct feedback before expansion |
-| Demo timeline slips due to data pipeline delays | Medium | High | Foundation sprint in April; data architecture de-risked before AI build begins |
-| Ethical AI concerns surface during testing | Low | High | Ethical AI review scheduled for July alpha; bias testing against all three personas |
-
-### Assumptions
-
-- OpenAI GPT-4o API access is available and within budget for the MVP phase
-- SeaKing WDC will provide timely access to structured workforce data for ingestion
-- Sessions are stateless; no user data is stored between visits (no PII retention risk for MVP)
-- Case managers from the pilot cohort are available for feedback sessions in July and August 2026
-- The GitLab Foundation demo date of September 2026 is fixed; the MVP must be demo-ready by that date
-- Jobseekers have access to a modern browser on desktop or mobile; no native app is required
-- All wage and program data displayed is sourced from verified Washington State datasets only — no third-party scraping or unverified sources

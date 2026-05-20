@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 export interface AppError {
   code: 'network' | 'timeout' | 'ai_error' | 'validation' | 'unknown';
@@ -18,9 +18,36 @@ const client = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+type TimedConfig = InternalAxiosRequestConfig & { metadata?: { start: number } };
+
+client.interceptors.request.use((cfg) => {
+  const c = cfg as TimedConfig;
+  c.metadata = { start: performance.now() };
+  console.log('[api →]', cfg.method?.toUpperCase(), `${cfg.baseURL ?? ''}${cfg.url ?? ''}`, {
+    params: cfg.params,
+    body: cfg.data,
+  });
+  return cfg;
+});
+
 client.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    const c = res.config as TimedConfig;
+    const ms = c.metadata ? Math.round(performance.now() - c.metadata.start) : undefined;
+    console.log('[api ←]', res.status, res.config.method?.toUpperCase(), res.config.url, {
+      durationMs: ms,
+      data: res.data,
+    });
+    return res;
+  },
   (err) => {
+    const c = err.config as TimedConfig | undefined;
+    const ms = c?.metadata ? Math.round(performance.now() - c.metadata.start) : undefined;
+    console.error('[api ✗]', err.response?.status ?? err.code, err.config?.method?.toUpperCase(), err.config?.url, {
+      durationMs: ms,
+      data: err.response?.data,
+      message: err.message,
+    });
     const apiError = err.response?.data?.error as { message?: string } | undefined;
     const appError: AppError = {
       code:

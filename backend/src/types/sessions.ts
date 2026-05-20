@@ -1,4 +1,9 @@
-export type SessionStatus = 'in_progress' | 'seed_complete' | 'followup_complete' | 'skills_complete';
+export type SessionStatus =
+  | 'in_progress'
+  | 'seed_complete'
+  | 'followup_complete'
+  | 'skills_complete'
+  | 'pathways_complete';
 
 export interface Session {
   id: string;

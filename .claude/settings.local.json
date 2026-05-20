@@ -35,7 +35,16 @@
       "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\bin;C:\\\\Program Files\\\\Git\\\\cmd\"; Set-Location \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\"; git status)",
       "PowerShell(pip *)",
       "PowerShell(py *)",
-      "PowerShell(ls \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\frontend\" -Name | Where-Object { $_ -match \"^\\(dev|scripts\\)\" })"
+      "PowerShell(ls \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\frontend\" -Name | Where-Object { $_ -match \"^\\(dev|scripts\\)\" })",
+      "Bash(curl *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(lsof -ti:4000 -ti:3000 -ti:8000)",
+      "Bash(lsof -nP -iTCP -sTCP:LISTEN)",
+      "Bash(awk '$9 ~ /:\\(3000|4000|8000\\)$/ {print}')",
+      "Bash(lsof -ti:3000,4000,8000)",
+      "Bash(xargs -r kill)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); p=d['data']['pathways']; print\\('OK:', len\\(p\\), 'pathways · cached=' + str\\(d['meta'].get\\('cached'\\)\\) + ' · sources=' + ','.join\\(d['meta'].get\\('sourceFiles', []\\)\\)\\); [print\\(f' rank {x[\\\\\"rank\\\\\"]}: {x[\\\\\"title\\\\\"]} \\(conf {x[\\\\\"confidence\\\\\"]}\\)'\\) for x in p]\")"
     ]
   }
 }

@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 import { config } from './config';
 import router from './routes';
 import { errorMiddleware } from './middleware/error';
-import { logger } from './logger';
+import { requestLogger } from './middleware/requestLogger';
 
 export function createApp() {
   const app = express();
@@ -18,10 +18,7 @@ export function createApp() {
     next();
   });
 
-  app.use((req, res, next) => {
-    logger.info({ event: 'request', method: req.method, path: req.path, requestId: res.locals['requestId'] });
-    next();
-  });
+  app.use(requestLogger);
 
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 

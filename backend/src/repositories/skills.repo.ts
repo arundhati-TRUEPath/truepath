@@ -51,6 +51,25 @@ export async function getSkills(sessionId: string): Promise<ClientSkill[]> {
   }));
 }
 
+export async function getConfirmedSkills(sessionId: string): Promise<ClientSkill[]> {
+  const { data, error } = await db
+    .from('session_skills')
+    .select('skill_id, label, sub, confidence, confirmed, rationale')
+    .eq('session_id', sessionId)
+    .eq('confirmed', true)
+    .order('confidence', { ascending: false });
+
+  if (error) throw new DatabaseError(error.message);
+  if (!data) return [];
+
+  return (data as SkillRow[]).map((r) => ({
+    id: r.skill_id,
+    label: r.label,
+    sub: r.sub,
+    confidence: r.confidence,
+  }));
+}
+
 export async function confirmSkills(sessionId: string, confirmedIds: string[]): Promise<void> {
   const { error: resetErr } = await db
     .from('session_skills')

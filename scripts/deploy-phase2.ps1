@@ -11,13 +11,22 @@
   - Azure CLI installed (winget install Microsoft.AzureCLI)
   - az login completed
   - az extension add --name containerapp
-  - az extension add --name monitor-control-service  (for Log Analytics)
   - backend/.env must exist with secrets
 
 .USAGE
-  cd C:\Users\ArundhatiRoy\code\truepath
+  # From repo root (Windows):
   .\scripts\deploy-phase2.ps1
+
+  # From Azure Cloud Shell (script and .env uploaded flat to home dir):
+  ./deploy-phase2.ps1
+
+  # Override the .env path explicitly:
+  .\scripts\deploy-phase2.ps1 -EnvFile "C:\path\to\my.env"
 #>
+
+param(
+    [string]$EnvFile = ""
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -33,8 +42,26 @@ $KV_NAME    = "truepath-kv"
 $SA_NAME    = "truepathstorage"
 $BLOB_CTR   = "rag-data"
 $MI_NAME    = "truepath-staging-id"
-$ENV_FILE   = Join-Path $PSScriptRoot "..\backend\.env"
-$OUT_FILE   = Join-Path $PSScriptRoot "deploy-outputs.json"
+
+# Resolve .env: explicit param > repo layout (scripts/../backend/.env) > same dir as script > cwd
+if ($EnvFile -ne "" -and (Test-Path $EnvFile)) {
+    $ENV_FILE = $EnvFile
+} else {
+    $candidates = @(
+        (Join-Path $PSScriptRoot "..\backend\.env"),   # repo root run: scripts/../backend/.env
+        (Join-Path $PSScriptRoot "backend\.env"),      # if script is at repo root
+        (Join-Path $PSScriptRoot ".env"),              # Cloud Shell: script + .env uploaded together
+        (Join-Path (Get-Location) "backend\.env"),     # cwd/backend/.env
+        (Join-Path (Get-Location) ".env")              # cwd/.env
+    )
+    $ENV_FILE = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+
+# deploy-outputs.json lives next to the script when run from repo, or in cwd for Cloud Shell
+$OUT_FILE = Join-Path $PSScriptRoot "deploy-outputs.json"
+if (-not (Test-Path $PSScriptRoot -PathType Container)) {
+    $OUT_FILE = Join-Path (Get-Location) "deploy-outputs.json"
+}
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 function Log($msg) { Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $msg" }
@@ -50,7 +77,7 @@ function Read-EnvValue($file, $key) {
 Log "Checking prerequisites..."
 
 if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-    Die "Azure CLI not found. Install with: winget install Microsoft.AzureCLI, then re-run."
+    Die "Azure CLI not found. Install options:`n  1. MSI: Invoke-WebRequest -Uri 'https://aka.ms/installazurecliwindows' -OutFile AzureCLI.msi; Start-Process msiexec '/I AzureCLI.msi /quiet' -Wait`n  2. Cloud Shell: https://shell.azure.com (no install needed)"
 }
 
 $account = az account show 2>$null | ConvertFrom-Json
@@ -61,9 +88,10 @@ az account set --subscription $SUB_ID
 $account = az account show | ConvertFrom-Json
 Log "Active subscription: $($account.name) ($($account.id))"
 
-if (-not (Test-Path $ENV_FILE)) {
-    Die "backend/.env not found at $ENV_FILE. Copy from backend/.env.example and fill in values."
+if (-not $ENV_FILE -or -not (Test-Path $ENV_FILE)) {
+    Die "No .env file found. Tried backend/.env, .env next to script, and cwd. Use -EnvFile to specify the path explicitly."
 }
+Log "Using .env file: $ENV_FILE"
 
 # ── Read secrets from backend/.env ───────────────────────────────────────────
 Log "Reading secrets from backend/.env..."

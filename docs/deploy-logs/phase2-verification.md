@@ -205,3 +205,12 @@ If role assignments still fail, wait another 30s and re-run the three `az role a
 
 ### L7: `containerapp` az extension required before any Container Apps commands
 **Fix applied**: Script runs `az extension add --name containerapp` in the pre-flight section.
+
+### L8: Script `.env` path resolution fails in Azure Cloud Shell
+**What happened**: When running from Cloud Shell, the script is uploaded flat to `/home/arundhati/` but it resolved `$PSScriptRoot/../backend/.env` which doesn't exist in that environment.
+
+**Fix applied in script**: Added ordered candidate resolution — explicit `-EnvFile` param → `scripts/../backend/.env` (repo layout) → `.env` next to the script (Cloud Shell upload case) → `cwd/.env`. Script now logs which file it resolved to.
+
+**Immediate workaround used**: `mkdir -p backend && cp .env backend/.env` in Cloud Shell home dir before running the script.
+
+**Future**: When uploading to Cloud Shell, upload `.env` and the script together in the same dir — the script will now find it automatically.

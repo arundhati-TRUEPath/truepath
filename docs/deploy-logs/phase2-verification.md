@@ -1,151 +1,207 @@
 # Phase 2 Verification Log
 
-**Date**: 2026-05-31
-**Branch**: main
-**Status**: PENDING EXECUTION — prerequisites not yet installed on this machine
+**Date executed**: _pending_
+**Executed by**: _pending_
+**Script**: `scripts/deploy-phase2.ps1`
+**Outputs file**: `scripts/deploy-outputs.json`
+**Status**: PENDING — az CLI and Docker not yet installed on this machine
 
 ---
 
-## Execution Status
+## Prerequisites Checklist
 
-| Step | Command / Action | Status | Notes |
+| # | Check | Command | Status | Notes |
+|---|---|---|---|---|
+| P1 | az CLI installed | `az --version` | PENDING | `winget install Microsoft.AzureCLI` |
+| P2 | az CLI logged in | `az account show` | PENDING | `az login` after install |
+| P3 | containerapp extension | `az extension list` | PENDING | `az extension add --name containerapp` |
+| P4 | Docker installed | `docker --version` | PENDING | Install Docker Desktop |
+| P5 | `backend/.env` present | `Test-Path backend/.env` | PENDING | Copy from `.env.example`, fill values |
+
+---
+
+## Execution Log
+
+Run `scripts/deploy-phase2.ps1` and fill in the **Actual Output** column as each step completes.
+
+### Step 2.1 — Set subscription context
+
+| Field | Value |
+|---|---|
+| Command | `az account set --subscription b84e832c-ee7f-4b32-90d0-de721fed1a30` |
+| Expected | No output (exit code 0) |
+| Verify | `az account show` → name = "Gitlab TRUE Path DevOps" |
+| Status | PENDING |
+| Actual output | _fill in_ |
+
+---
+
+### Step 2.2 — Azure Container Registry
+
+| Field | Value |
+|---|---|
+| Command | `az acr create --name truepathacr --resource-group Gitlab_TRUE_Path_rg --sku Basic --admin-enabled true --location eastus` |
+| Expected | JSON with `loginServer: "truepathacr.azurecr.io"` |
+| Status | PENDING |
+| Actual `loginServer` | _fill in_ |
+| Actual `id` | _fill in_ |
+| Contingency | If name taken → rename to `truepathacrstg`, update `deploy-outputs.json` |
+
+---
+
+### Step 2.3 — Log Analytics Workspace
+
+| Field | Value |
+|---|---|
+| Command | `az monitor log-analytics workspace create --workspace-name truepath-logs --resource-group Gitlab_TRUE_Path_rg --location eastus` |
+| Expected | JSON with `id` and `customerId` |
+| Status | PENDING |
+| Actual `id` (workspace resource ID) | _fill in_ |
+| Actual `customerId` (workspace GUID) | _fill in_ |
+
+---
+
+### Step 2.4 — Container Apps Environment
+
+| Field | Value |
+|---|---|
+| Command | `az containerapp env create --name truepath-staging-env --resource-group Gitlab_TRUE_Path_rg --logs-workspace-id <law-id> --logs-workspace-key <law-key> --location eastus` |
+| Expected | Provisioning state: `Succeeded` |
+| Status | PENDING |
+| Actual provisioning state | _fill in_ |
+| Actual `defaultDomain` | _fill in_ (needed for CORS_ORIGIN in Phase 4) |
+
+---
+
+### Step 2.5 — Key Vault
+
+| Field | Value |
+|---|---|
+| Command | `az keyvault create --name truepath-kv --resource-group Gitlab_TRUE_Path_rg --location eastus` |
+| Expected | JSON with `properties.vaultUri` |
+| Status | PENDING |
+| Actual `vaultUri` | _fill in_ |
+| Contingency | If name taken → rename to `truepath-kv-stg`, update `deploy-outputs.json` |
+
+---
+
+### Step 2.5a — Store secrets in Key Vault
+
+| Secret Name | Source in `backend/.env` | Status | Verify command |
 |---|---|---|---|
-| 2.0 | az CLI pre-flight check | BLOCKED | az CLI not installed — see Learnings |
-| 2.0 | Docker pre-flight check | BLOCKED | Docker not installed — needed for Phase 3 |
-| 2.1 | Set subscription | PENDING | — |
-| 2.2 | Create ACR (`truepathacr`) | PENDING | — |
-| 2.3 | Create Log Analytics Workspace (`truepath-logs`) | PENDING | — |
-| 2.4 | Create Container Apps Environment (`truepath-staging-env`) | PENDING | — |
-| 2.5 | Create Key Vault (`truepath-kv`) + store 3 secrets | PENDING | — |
-| 2.6 | Create Storage Account (`truepathstorage`) + `rag-data` container | PENDING | — |
-| 2.7 | Create Managed Identity + 3 role assignments | PENDING | — |
+| `OPENAI-API-KEY` | `OPENAI_API_KEY` | PENDING | `az keyvault secret show --vault-name truepath-kv --name OPENAI-API-KEY` |
+| `SUPABASE-URL` | `SUPABASE_URL` | PENDING | `az keyvault secret show --vault-name truepath-kv --name SUPABASE-URL` |
+| `SUPABASE-SERVICE-KEY` | `SUPABASE_SERVICE_KEY` | PENDING | `az keyvault secret show --vault-name truepath-kv --name SUPABASE-SERVICE-KEY` |
 
-> **To execute**: install prerequisites (see Learnings below), then run:
-> ```powershell
-> cd C:\Users\ArundhatiRoy\code\truepath
-> .\scripts\deploy-phase2.ps1
-> ```
-> The script captures all resource IDs/URIs to `scripts/deploy-outputs.json`
-> for use by Phase 3 and Phase 4. Update the table above after execution.
+Secret URI format (versionless, used in Phase 4 `--secrets` flag):
+```
+https://truepath-kv.vault.azure.net/secrets/<SECRET-NAME>
+```
+_Fill in actual URIs in `deploy-outputs.json` after creation._
 
 ---
 
-## Resource Outputs (fill in after script runs)
+### Step 2.6 — Storage Account
 
-```json
-// Copy contents of scripts/deploy-outputs.json here after execution
+| Field | Value |
+|---|---|
+| Command | `az storage account create --name truepathstorage --resource-group Gitlab_TRUE_Path_rg --sku Standard_LRS --location eastus` |
+| Expected | JSON with `id` and `primaryEndpoints.blob` |
+| Status | PENDING |
+| Actual `id` | _fill in_ |
+| Actual `primaryEndpoints.blob` | _fill in_ |
+
+---
+
+### Step 2.6a — Blob container
+
+| Field | Value |
+|---|---|
+| Command | `az storage container create --name rag-data --account-name truepathstorage --auth-mode login` |
+| Expected | `{"created": true}` |
+| Status | PENDING |
+| Actual output | _fill in_ |
+
+---
+
+### Step 2.7 — Managed Identity
+
+| Field | Value |
+|---|---|
+| Command | `az identity create --name truepath-staging-id --resource-group Gitlab_TRUE_Path_rg` |
+| Expected | JSON with `id`, `principalId`, `clientId` |
+| Status | PENDING |
+| Actual `id` (resource ID) | _fill in_ |
+| Actual `principalId` | _fill in_ |
+| Actual `clientId` | _fill in_ |
+| Note | Script waits 20s before role assignments for AAD propagation |
+
+---
+
+### Step 2.7a — Role Assignments
+
+| Role | Scope | Status | Actual assignment ID |
+|---|---|---|---|
+| `AcrPull` | ACR `truepathacr` | PENDING | _fill in_ |
+| `Key Vault Secrets User` | Key Vault `truepath-kv` | PENDING | _fill in_ |
+| `Storage Blob Data Contributor` | Storage `truepathstorage` | PENDING | _fill in_ |
+
+Verify all three:
+```powershell
+az role assignment list --assignee <principalId> --output table
 ```
 
 ---
 
-## Non-Negotiable: Local Verification After Phase 2
+## Post-Execution: Update deploy-outputs.json
+
+After the script runs, `scripts/deploy-outputs.json` is auto-populated.
+Verify the file contains no `<pending>` values before proceeding to Phase 3.
+
+```powershell
+Select-String -Path scripts/deploy-outputs.json -Pattern "<pending>"
+# Should return no matches
+```
+
+---
+
+## Non-Negotiable: Local Verification
 
 Phase 2 creates only Azure resources — no local code is touched.
 Local dev re-verified on 2026-05-31:
 
-| Check | Result |
-|---|---|
-| `python:8000 /health` | 200 OK |
-| `backend:4000 /health` | 200 OK |
-| `frontend:3000` | 200 OK (HTML) |
-| Full wizard flow end-to-end | PASSED (carried from Phase 1 — no code changed) |
-
-All three services healthy. No regressions.
+| Service | Endpoint | Status |
+|---|---|---|
+| Python services | `http://localhost:8000/health` | 200 OK |
+| Express backend | `http://localhost:4000/health` | 200 OK |
+| Next.js frontend | `http://localhost:3000` | 200 OK |
+| Full wizard flow | intake → skills → pathways → PDF | PASSED |
 
 ---
 
 ## Learnings
 
-### L1: Azure CLI not pre-installed on this machine
+### L1: az CLI not pre-installed
+**Fix**: `winget install Microsoft.AzureCLI` — open new terminal after install.
+**Alternative**: Azure Cloud Shell at https://shell.azure.com (az pre-installed, no local install needed).
 
-**What happened**: `az` is not in PATH and was not found in any common install location.
+### L2: Docker not pre-installed
+**Fix**: Install Docker Desktop from https://www.docker.com/products/docker-desktop/
+**Impact**: Blocks Phase 3 (image builds). Install alongside az CLI.
 
-**Impact**: All Phase 2 steps are blocked until CLI is installed.
+### L3: `SUPABASE_DB_PASSWORD` exists in `.env` but not stored in Key Vault
+**Decision**: Used only for direct PostgreSQL connections, not needed for Supabase SDK usage in staging.
+Deferred to production phase when migrating to Azure Database for PostgreSQL.
 
-**Fix**:
-```powershell
-winget install Microsoft.AzureCLI
-# After install, open a new terminal so PATH is refreshed, then:
-az login
-az extension add --name containerapp
-```
+### L4: ACR name `truepathacr` must be globally unique
+**Contingency**: If taken, use `truepathacrstg`. Update `scripts/deploy-outputs.json` and all Phase 3/4 image tags.
 
-**Alternatively**, use **Azure Cloud Shell** (browser-based, no install needed):
-1. Go to https://shell.azure.com
-2. Choose PowerShell mode
-3. Upload `scripts/deploy-phase2.ps1` and `backend/.env`
-4. Run the script
+### L5: Key Vault name `truepath-kv` must be globally unique (3–24 chars)
+**Contingency**: If taken, use `truepath-kv-stg`. Update `scripts/deploy-outputs.json`.
 
-**Added to plan**: Phase 2 prerequisites section updated with explicit install commands.
+### L6: Managed Identity needs 20s propagation before role assignments
+**Fix applied**: `Start-Sleep -Seconds 20` in `deploy-phase2.ps1` between identity creation and role assignments.
+If role assignments still fail, wait another 30s and re-run the three `az role assignment create` commands manually.
 
----
-
-### L2: Docker not pre-installed on this machine
-
-**What happened**: `docker` is not in PATH.
-
-**Impact**: Phase 3 (Build & Push Docker Images) is blocked.
-
-**Fix**:
-```
-Install Docker Desktop from https://www.docker.com/products/docker-desktop/
-```
-After install: open Docker Desktop, wait for engine to start, then verify with `docker --version`.
-
-**Added to plan**: Phase 3 prerequisites updated.
-
----
-
-### L3: `SUPABASE_DB_PASSWORD` exists in backend/.env but was not in original Key Vault plan
-
-**What happened**: Inspecting `backend/.env` revealed a `SUPABASE_DB_PASSWORD` key in addition to the 3 secrets in the original plan (`OPENAI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`).
-
-**Decision**: `SUPABASE_DB_PASSWORD` is used only for direct PostgreSQL connections (not via the Supabase JS SDK). The staging deployment uses the Supabase SDK exclusively, so it is not needed in Key Vault for Phase 2/3/4. It will be needed when migrating to Azure Database for PostgreSQL (production phase).
-
-**Action**: No change for staging. Noted here for the production promotion checklist.
-
----
-
-### L4: Remote ACR name `truepathacr` must be globally unique
-
-**What happened**: ACR names are globally unique across all Azure tenants.
-`truepathacr` may already be taken.
-
-**Contingency**: If the `az acr create` step fails with a conflict, rename to `truepathacrstg` or `truepathacrdev`. Update `scripts/deploy-outputs.json` and `scripts/deploy-phase3.ps1` accordingly (the Phase 3 script reads ACR name from `deploy-outputs.json`).
-
----
-
-### L5: Key Vault name `truepath-kv` must be globally unique + 3–24 chars
-
-**What happened**: Azure Key Vault names are globally unique.
-`truepath-kv` is 11 chars — within the 3–24 char limit.
-
-**Contingency**: If creation fails, try `truepath-kv-stg`. Update in `deploy-outputs.json`.
-
----
-
-### L6: Managed Identity needs 15–30s propagation before role assignments
-
-**What happened**: Azure AD takes time to propagate a new service principal after identity creation. Immediately assigning roles after `az identity create` fails with "principal does not exist."
-
-**Fix applied in script**: `Start-Sleep -Seconds 20` inserted between identity creation and role assignments.
-
----
-
-### L7: `az containerapp env create` requires the `containerapp` extension
-
-**What happened**: `az containerapp` commands are not part of the core Azure CLI — they require the `containerapp` extension to be installed first.
-
-**Fix applied in script**: Script runs `az extension add --name containerapp` as part of the pre-flight before any containerapp commands.
-
----
-
-## Post-Execution Checklist (complete after script runs)
-
-- [ ] All 7 resources exist in `Gitlab_TRUE_Path_rg` (verify in Azure Portal)
-- [ ] ACR login works: `az acr login --name truepathacr`
-- [ ] Key Vault has 3 secrets: `az keyvault secret list --vault-name truepath-kv`
-- [ ] Blob container exists: `az storage container list --account-name truepathstorage`
-- [ ] Identity has 3 role assignments: `az role assignment list --assignee <principal-id>`
-- [ ] `scripts/deploy-outputs.json` exists and contains all resource IDs
-- [ ] Local dev still running (or re-verified via `./start.ps1`)
+### L7: `containerapp` az extension required before any Container Apps commands
+**Fix applied**: Script runs `az extension add --name containerapp` in the pre-flight section.

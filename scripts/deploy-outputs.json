@@ -1,0 +1,55 @@
+{
+  "_status": "PENDING — run scripts/deploy-phase2.ps1 to populate",
+  "_last_updated": "2026-05-31",
+
+  "subscription_id": "b84e832c-ee7f-4b32-90d0-de721fed1a30",
+  "resource_group": "Gitlab_TRUE_Path_rg",
+  "location": "eastus",
+
+  "acr": {
+    "name": "truepathacr",
+    "login_server": "<pending: truepathacr.azurecr.io>",
+    "sku": "Basic"
+  },
+
+  "log_analytics": {
+    "name": "truepath-logs",
+    "workspace_id": "<pending>",
+    "resource_id": "<pending>"
+  },
+
+  "container_apps_env": {
+    "name": "truepath-staging-env",
+    "resource_id": "<pending>",
+    "default_domain": "<pending: e.g. happyfield-abc123.eastus.azurecontainerapps.io>"
+  },
+
+  "key_vault": {
+    "name": "truepath-kv",
+    "uri": "<pending: https://truepath-kv.vault.azure.net/>",
+    "secret_uris": {
+      "OPENAI-API-KEY":       "<pending: https://truepath-kv.vault.azure.net/secrets/OPENAI-API-KEY>",
+      "SUPABASE-URL":         "<pending: https://truepath-kv.vault.azure.net/secrets/SUPABASE-URL>",
+      "SUPABASE-SERVICE-KEY": "<pending: https://truepath-kv.vault.azure.net/secrets/SUPABASE-SERVICE-KEY>"
+    }
+  },
+
+  "storage": {
+    "account_name": "truepathstorage",
+    "blob_container": "rag-data",
+    "resource_id": "<pending>"
+  },
+
+  "managed_identity": {
+    "name": "truepath-staging-id",
+    "resource_id": "<pending: /subscriptions/.../providers/Microsoft.ManagedIdentity/userAssignedIdentities/truepath-staging-id>",
+    "principal_id": "<pending>",
+    "client_id": "<pending>"
+  },
+
+  "role_assignments": {
+    "AcrPull": "<pending: assigned to identity on ACR scope>",
+    "KeyVaultSecretsUser": "<pending: assigned to identity on Key Vault scope>",
+    "StorageBlobDataContributor": "<pending: assigned to identity on Storage Account scope>"
+  }
+}

@@ -176,6 +176,25 @@ $kvJson = $kvRaw | ConvertFrom-Json
 $KV_URI = $kvJson.properties.vaultUri
 Log "Key Vault URI: $KV_URI"
 
+# Grant the deploying identity "Key Vault Secrets Officer" so this script can write secrets.
+# Key Vaults created in RBAC mode (the new default) give NO implicit access — not even to the creator.
+$KV_SCOPE_WRITE = "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/$KV_NAME"
+$DEPLOYER_OID = (az ad signed-in-user show --query id -o tsv 2>$null)
+if (-not $DEPLOYER_OID) {
+    # Cloud Shell service principal — fall back to account object id
+    $DEPLOYER_OID = (az account show --query user.name -o tsv)
+    Die "Cannot resolve deployer OID. Grant 'Key Vault Secrets Officer' manually on $KV_NAME, then re-run."
+}
+Log "Granting Key Vault Secrets Officer to deployer OID: $DEPLOYER_OID..."
+az role assignment create `
+    --assignee-object-id $DEPLOYER_OID `
+    --assignee-principal-type User `
+    --role "Key Vault Secrets Officer" `
+    --scope $KV_SCOPE_WRITE | Out-Null
+if ($LASTEXITCODE -ne 0) { Die "Failed to grant Key Vault Secrets Officer to deployer." }
+Log "Role granted. Waiting 20s for RBAC propagation..."
+Start-Sleep -Seconds 20
+
 Log "Storing secrets in Key Vault..."
 foreach ($entry in $secrets.GetEnumerator()) {
     az keyvault secret set --vault-name $KV_NAME --name $entry.Key --value $entry.Value | Out-Null

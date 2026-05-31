@@ -243,6 +243,35 @@ az provider register --namespace Microsoft.OperationalInsights --wait
 
 ---
 
+### L11: Key Vault RBAC — creator is not auto-granted secret write access
+**What happened**: `az keyvault secret set` returned `Forbidden / ForbiddenByRbac`. Key Vaults created in the newer **RBAC authorization mode** (the new default since 2023) grant zero implicit access — not even to the identity that created the vault. A role assignment must exist before any secret write is attempted.
+
+**Error signature**:
+```
+Action: 'Microsoft.KeyVault/vaults/secrets/setSecret/action'
+Assignment: (not found)
+Inner error: {"code": "ForbiddenByRbac"}
+```
+
+**Fix applied in script**: After `az keyvault create`, the script now:
+1. Resolves the current user's object ID via `az ad signed-in-user show --query id`
+2. Assigns `Key Vault Secrets Officer` to that OID on the vault scope
+3. Waits 20 s for RBAC propagation before attempting `az keyvault secret set`
+
+**If you need to fix manually** (vault already exists, just missing the role):
+```powershell
+$OID = az ad signed-in-user show --query id -o tsv
+az role assignment create --assignee-object-id $OID --assignee-principal-type User \
+  --role "Key Vault Secrets Officer" \
+  --scope "/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.KeyVault/vaults/truepath-kv"
+Start-Sleep -Seconds 30
+# then re-run the secret set commands
+```
+
+**Note**: The Managed Identity (`truepath-staging-id`) separately gets `Key Vault Secrets User` (read-only) — that role is assigned in step 2.7a and is separate from the deployer's write access.
+
+---
+
 ### L8: Script `.env` path resolution fails in Azure Cloud Shell
 **What happened**: When running from Cloud Shell, the script is uploaded flat to `/home/arundhati/` but it resolved `$PSScriptRoot/../backend/.env` which doesn't exist in that environment.
 

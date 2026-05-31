@@ -96,7 +96,31 @@ Supporting resources (same resource group):
 
 ## Phase 2 — Azure Infrastructure Setup
 
-> Prerequisites: Azure CLI installed, `az login` done, correct subscription set.
+> **Status: PENDING** — [Verification & Learnings log](deploy-logs/phase2-verification.md)
+>
+> **Automation script**: `scripts/deploy-phase2.ps1` — run this instead of manual commands.
+> It reads secrets from `backend/.env`, creates all resources, and writes all output IDs/URIs
+> to `scripts/deploy-outputs.json` (consumed by Phase 3 and Phase 4 scripts).
+
+### Prerequisites (must be done before running the script)
+
+```powershell
+# 1. Install Azure CLI
+winget install Microsoft.AzureCLI
+# Open a new terminal after install so PATH refreshes
+
+# 2. Log in and install required extensions
+az login
+az extension add --name containerapp
+
+# 3. Install Docker Desktop
+# https://www.docker.com/products/docker-desktop/
+# Required for Phase 3 — install now so it's ready
+docker --version
+```
+
+> **Alternative**: use Azure Cloud Shell (https://shell.azure.com) — az CLI is pre-installed.
+> Upload `scripts/deploy-phase2.ps1` and `backend/.env` to the shell, then run.
 
 ### 2.1 — Subscription context
 - [ ] `az account set --subscription b84e832c-ee7f-4b32-90d0-de721fed1a30`
@@ -105,78 +129,44 @@ Supporting resources (same resource group):
 ### 2.2 — Azure Container Registry
 - [ ] `az acr create --name truepathacr --resource-group Gitlab_TRUE_Path_rg --sku Basic --admin-enabled true`
 - [ ] Note the login server: `truepathacr.azurecr.io`
+- [ ] **Contingency**: if name taken, use `truepathacrstg` — update `deploy-outputs.json`
 
 ### 2.3 — Log Analytics Workspace
 - [ ] `az monitor log-analytics workspace create --workspace-name truepath-logs --resource-group Gitlab_TRUE_Path_rg --location eastus`
-- [ ] Note the workspace ID (needed for Container Apps Environment)
+- [ ] Note the workspace ID (captured automatically by script)
 
 ### 2.4 — Container Apps Environment
-```bash
-az containerapp env create \
-  --name truepath-staging-env \
-  --resource-group Gitlab_TRUE_Path_rg \
-  --logs-workspace-id <workspace-id> \
-  --location eastus
-```
+- [ ] `az containerapp env create --name truepath-staging-env ...` (see script)
 - [ ] Environment created and in `Succeeded` state
 
 ### 2.5 — Key Vault + secrets
-```bash
-az keyvault create --name truepath-kv --resource-group Gitlab_TRUE_Path_rg --location eastus
-az keyvault secret set --vault-name truepath-kv --name OPENAI-API-KEY       --value "<value>"
-az keyvault secret set --vault-name truepath-kv --name SUPABASE-URL         --value "<value>"
-az keyvault secret set --vault-name truepath-kv --name SUPABASE-SERVICE-KEY --value "<value>"
-```
-- [ ] Key Vault created
-- [ ] All 3 secrets stored
+- [ ] `az keyvault create --name truepath-kv ...` (if name taken, use `truepath-kv-stg`)
+- [ ] `OPENAI-API-KEY` stored
+- [ ] `SUPABASE-URL` stored
+- [ ] `SUPABASE-SERVICE-KEY` stored
+- [ ] Secret version-less URIs captured in `deploy-outputs.json`
 
 ### 2.6 — Storage Account + blob container (RAG data)
-```bash
-az storage account create \
-  --name truepathstorage \
-  --resource-group Gitlab_TRUE_Path_rg \
-  --sku Standard_LRS \
-  --location eastus
-
-az storage container create \
-  --name rag-data \
-  --account-name truepathstorage
-```
-- [ ] Storage account created
-- [ ] `rag-data` container created
+- [ ] Storage account `truepathstorage` created (Standard_LRS)
+- [ ] `rag-data` blob container created
 
 ### 2.7 — Managed Identity
-```bash
-az identity create --name truepath-staging-id --resource-group Gitlab_TRUE_Path_rg
+- [ ] Identity `truepath-staging-id` created
+- [ ] `AcrPull` on ACR assigned
+- [ ] `Key Vault Secrets User` on Key Vault assigned
+- [ ] `Storage Blob Data Contributor` on Storage Account assigned
+- [ ] All IDs captured in `deploy-outputs.json`
 
-# Assign AcrPull on ACR
-az role assignment create \
-  --assignee <identity-principal-id> \
-  --role AcrPull \
-  --scope /subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.ContainerRegistry/registries/truepathacr
-
-# Assign Key Vault Secrets User
-az role assignment create \
-  --assignee <identity-principal-id> \
-  --role "Key Vault Secrets User" \
-  --scope /subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.KeyVault/vaults/truepath-kv
-
-# Assign Storage Blob Data Contributor (rag-job needs write for temp operations)
-az role assignment create \
-  --assignee <identity-principal-id> \
-  --role "Storage Blob Data Contributor" \
-  --scope /subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.Storage/storageAccounts/truepathstorage
-```
-- [ ] Identity created
-- [ ] AcrPull assigned
-- [ ] Key Vault Secrets User assigned
-- [ ] Storage Blob Data Contributor assigned
+### 2.8 — Local verification (non-negotiable)
+- [ ] Run `./start.ps1` to confirm local dev still works after any env changes
+- [ ] Full wizard flow end-to-end passes (Phase 2 touches no local code — this is a sanity check)
 
 ---
 
 ## Phase 3 — Build & Push Docker Images
 
-> Run from repo root on local machine. Docker Desktop must be running.
+> **Prerequisites**: Docker Desktop installed and running (not present on this machine — install alongside az CLI).
+> Run from repo root on local machine.
 
 ```bash
 az acr login --name truepathacr

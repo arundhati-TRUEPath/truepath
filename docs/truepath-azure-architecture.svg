@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="840" viewBox="0 0 1440 840">
+<defs>
+  <style>
+    text { font-family: 'Segoe UI', Arial, sans-serif; }
+    .title       { font-size:20px; font-weight:700; fill:#1a1a1a; }
+    .subtitle    { font-size:11px; fill:#555; }
+    .zone-lbl    { font-size:10px; font-weight:700; letter-spacing:1.8px; }
+    .env-lbl     { font-size:10px; font-weight:700; fill:#fff; letter-spacing:.4px; }
+    .svc-name    { font-size:12px; font-weight:700; fill:#1a1a1a; }
+    .svc-detail  { font-size:10px; fill:#444; }
+    .svc-small   { font-size:9px;  fill:#666; }
+    .badge-txt   { font-size:8px;  font-weight:700; fill:#fff; }
+    .res-name    { font-size:11px; font-weight:700; fill:#1a1a1a; }
+    .res-detail  { font-size:9px;  fill:#555; }
+    .arr-lbl     { font-size:9px;  fill:#333; }
+    .leg-txt     { font-size:9px;  fill:#333; }
+  </style>
+
+  <!-- drop shadow -->
+  <filter id="sh" x="-8%" y="-8%" width="116%" height="130%">
+    <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000018"/>
+  </filter>
+  <filter id="sh-sm" x="-4%" y="-4%" width="108%" height="120%">
+    <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#00000014"/>
+  </filter>
+
+  <!-- arrow markers -->
+  <marker id="ab"  markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#0078D4"/></marker>
+  <marker id="ag"  markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#107C10"/></marker>
+  <marker id="ao"  markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#C55A11"/></marker>
+  <marker id="agy" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#999"/></marker>
+  <marker id="apu" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#7719AA"/></marker>
+</defs>
+
+<!-- ░░░ CANVAS BG ░░░ -->
+<rect width="1440" height="840" fill="#F2F5F8"/>
+
+<!-- ░░░ TITLE ░░░ -->
+<text x="720" y="30" text-anchor="middle" class="title">TruePath — Azure Staging Architecture</text>
+<text x="720" y="48" text-anchor="middle" class="subtitle">Subscription: Gitlab TRUE Path DevOps (b84e832c)  ·  Resource Group: Gitlab_TRUE_Path_rg  ·  Region: East US</text>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     INTERNET ZONE
+════════════════════════════════════════════════════════════════ -->
+<rect x="16" y="58" width="1408" height="88" rx="8" fill="#EDF2FF" stroke="#4A90E2" stroke-width="1.5" stroke-dasharray="7,4"/>
+<text x="36" y="76" class="zone-lbl" fill="#4A90E2">INTERNET</text>
+
+<!-- Browser icon -->
+<g transform="translate(672,66)">
+  <rect x="0" y="0" width="96" height="64" rx="6" fill="#fff" stroke="#4A90E2" stroke-width="1.5"/>
+  <rect x="0" y="0" width="96" height="18" rx="6" fill="#4A90E2"/>
+  <rect x="0" y="12" width="96" height="6" fill="#4A90E2"/>
+  <circle cx="10" cy="9" r="3" fill="#fff" opacity=".7"/>
+  <circle cx="20" cy="9" r="3" fill="#fff" opacity=".7"/>
+  <circle cx="30" cy="9" r="3" fill="#fff" opacity=".7"/>
+  <rect x="8" y="28" width="80" height="6" rx="2" fill="#E0EBFF"/>
+  <rect x="8" y="40" width="52" height="5" rx="2" fill="#E0EBFF"/>
+  <rect x="8" y="51" width="66" height="5" rx="2" fill="#E0EBFF"/>
+</g>
+<text x="720" y="140" text-anchor="middle" font-size="11" font-weight="600" fill="#333">End User Browser</text>
+
+<!-- HTTPS arrow down -->
+<line x1="720" y1="148" x2="720" y2="167" stroke="#0078D4" stroke-width="2.5" marker-end="url(#ab)"/>
+<rect x="680" y="152" width="80" height="14" rx="3" fill="#D4E8FF"/>
+<text x="720" y="163" text-anchor="middle" class="arr-lbl" font-weight="600">HTTPS / TLS</text>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     AZURE CLOUD ZONE
+════════════════════════════════════════════════════════════════ -->
+<rect x="16" y="172" width="1408" height="488" rx="8" fill="#EAF2FF" stroke="#0078D4" stroke-width="2"/>
+
+<!-- Azure logo (simplified) -->
+<g transform="translate(1355,180)">
+  <path d="M0 26 L14 0 L28 26 Z" fill="#0078D4"/>
+  <path d="M5 26 L14 6 L23 26 Z" fill="#fff" opacity=".55"/>
+</g>
+<text x="1356" y="214" font-size="11" font-weight="700" fill="#0078D4" text-anchor="end">Microsoft Azure</text>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     CONTAINER APPS ENVIRONMENT BOX
+════════════════════════════════════════════════════════════════ -->
+<rect x="28" y="192" width="1000" height="372" rx="6" fill="#fff" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="9,4" filter="url(#sh)"/>
+
+<!-- CAE header pill -->
+<rect x="44" y="185" width="368" height="18" rx="9" fill="#0078D4"/>
+<!-- Container Apps icon in header -->
+<polygon points="50,194 56,188 62,194 56,200" fill="#50E6FF"/>
+<text x="70" y="197" class="env-lbl">Container Apps Environment: truepath-staging-env</text>
+
+<!-- min/max note -->
+<text x="1010" y="197" text-anchor="end" font-size="9" fill="#0078D4" font-weight="600">All services: minReplicas 1 · maxReplicas 3</text>
+
+<!-- ───────────────────────────────────────
+     SERVICE: truepath-frontend
+─────────────────────────────────────── -->
+<rect x="46" y="208" width="200" height="210" rx="6" fill="#fff" stroke="#0078D4" stroke-width="1.5" filter="url(#sh-sm)"/>
+<!-- Icon bg -->
+<rect x="58" y="220" width="32" height="32" rx="5" fill="#0078D4"/>
+<!-- Container Apps icon (diamond) -->
+<polygon points="62,236 74,224 86,236 74,248" fill="#50E6FF"/>
+<!-- EXTERNAL badge -->
+<rect x="98" y="222" width="136" height="15" rx="7" fill="#107C10"/>
+<text x="166" y="232" text-anchor="middle" class="badge-txt">⬆ EXTERNAL INGRESS</text>
+
+<text x="146" y="272" text-anchor="middle" class="svc-name">truepath-frontend</text>
+<text x="146" y="287" text-anchor="middle" class="svc-detail">Next.js 15 · App Router</text>
+<text x="146" y="300" text-anchor="middle" class="svc-detail">Port 3000</text>
+<line x1="56" y1="310" x2="236" y2="310" stroke="#EEE" stroke-width="1"/>
+<text x="146" y="323" text-anchor="middle" class="svc-small">Rewrites /api/* →</text>
+<text x="146" y="334" text-anchor="middle" class="svc-small">truepath-backend (internal)</text>
+<text x="146" y="347" text-anchor="middle" class="svc-small">SSR · Static Assets · PDF proxy</text>
+<line x1="56" y1="356" x2="236" y2="356" stroke="#EEE" stroke-width="1"/>
+<!-- MI badge -->
+<rect x="68" y="362" width="156" height="13" rx="6" fill="#E8F0FF"/>
+<text x="146" y="372" text-anchor="middle" font-size="8" fill="#0078D4" font-weight="600">🔐 Managed Identity</text>
+<!-- Port indicator -->
+<rect x="68" y="380" width="66" height="13" rx="3" fill="#F0F0F0"/>
+<text x="101" y="390" text-anchor="middle" font-size="8" fill="#555">img: frontend</text>
+<rect x="142" y="380" width="82" height="13" rx="3" fill="#F0F0F0"/>
+<text x="183" y="390" text-anchor="middle" font-size="8" fill="#555">Node 20 Alpine</text>
+
+<!-- ───────────────────────────────────────
+     SERVICE: truepath-backend
+─────────────────────────────────────── -->
+<rect x="318" y="208" width="200" height="210" rx="6" fill="#fff" stroke="#0078D4" stroke-width="1.5" filter="url(#sh-sm)"/>
+<rect x="330" y="220" width="32" height="32" rx="5" fill="#0078D4"/>
+<polygon points="334,236 346,224 358,236 346,248" fill="#50E6FF"/>
+<!-- INTERNAL badge -->
+<rect x="370" y="222" width="80" height="15" rx="7" fill="#005BA1"/>
+<text x="410" y="232" text-anchor="middle" class="badge-txt">● INTERNAL</text>
+
+<text x="418" y="272" text-anchor="middle" class="svc-name">truepath-backend</text>
+<text x="418" y="287" text-anchor="middle" class="svc-detail">Express 4 · TypeScript</text>
+<text x="418" y="300" text-anchor="middle" class="svc-detail">Port 4000</text>
+<line x1="328" y1="310" x2="508" y2="310" stroke="#EEE" stroke-width="1"/>
+<text x="418" y="323" text-anchor="middle" class="svc-small">LLM orchestration (OpenAI)</text>
+<text x="418" y="334" text-anchor="middle" class="svc-small">RAG retrieval · PDF generation</text>
+<text x="418" y="347" text-anchor="middle" class="svc-small">Zod validation · Pino logging</text>
+<line x1="328" y1="356" x2="508" y2="356" stroke="#EEE" stroke-width="1"/>
+<rect x="340" y="362" width="156" height="13" rx="6" fill="#E8F0FF"/>
+<text x="418" y="372" text-anchor="middle" font-size="8" fill="#0078D4" font-weight="600">🔐 Managed Identity</text>
+<rect x="340" y="380" width="66" height="13" rx="3" fill="#F0F0F0"/>
+<text x="373" y="390" text-anchor="middle" font-size="8" fill="#555">img: backend</text>
+<rect x="414" y="380" width="82" height="13" rx="3" fill="#F0F0F0"/>
+<text x="455" y="390" text-anchor="middle" font-size="8" fill="#555">Node 20 Alpine</text>
+
+<!-- ───────────────────────────────────────
+     SERVICE: truepath-python
+─────────────────────────────────────── -->
+<rect x="590" y="208" width="200" height="210" rx="6" fill="#fff" stroke="#0078D4" stroke-width="1.5" filter="url(#sh-sm)"/>
+<rect x="602" y="220" width="32" height="32" rx="5" fill="#0078D4"/>
+<polygon points="606,236 618,224 630,236 618,248" fill="#50E6FF"/>
+<!-- INTERNAL badge -->
+<rect x="642" y="222" width="80" height="15" rx="7" fill="#005BA1"/>
+<text x="682" y="232" text-anchor="middle" class="badge-txt">● INTERNAL</text>
+
+<text x="690" y="272" text-anchor="middle" class="svc-name">truepath-python</text>
+<text x="690" y="287" text-anchor="middle" class="svc-detail">FastAPI · Python 3.11</text>
+<text x="690" y="300" text-anchor="middle" class="svc-detail">Port 8000 · Uvicorn</text>
+<line x1="600" y1="310" x2="780" y2="310" stroke="#EEE" stroke-width="1"/>
+<text x="690" y="323" text-anchor="middle" class="svc-small">OpenAI embeddings</text>
+<text x="690" y="334" text-anchor="middle" class="svc-small">pgvector similarity search</text>
+<text x="690" y="347" text-anchor="middle" class="svc-small">PDF + Excel ingestion</text>
+<line x1="600" y1="356" x2="780" y2="356" stroke="#EEE" stroke-width="1"/>
+<rect x="612" y="362" width="156" height="13" rx="6" fill="#E8F0FF"/>
+<text x="690" y="372" text-anchor="middle" font-size="8" fill="#0078D4" font-weight="600">🔐 Managed Identity</text>
+<rect x="612" y="380" width="66" height="13" rx="3" fill="#F0F0F0"/>
+<text x="645" y="390" text-anchor="middle" font-size="8" fill="#555">img: python</text>
+<rect x="686" y="380" width="82" height="13" rx="3" fill="#F0F0F0"/>
+<text x="727" y="390" text-anchor="middle" font-size="8" fill="#555">Python 3.11 slim</text>
+
+<!-- ───────────────────────────────────────
+     SCHEDULED JOB: truepath-rag-job
+─────────────────────────────────────── -->
+<rect x="820" y="208" width="190" height="148" rx="6" fill="#FAF2FF" stroke="#7719AA" stroke-width="1.5" filter="url(#sh-sm)"/>
+<!-- Clock icon bg -->
+<rect x="832" y="220" width="32" height="32" rx="5" fill="#7719AA"/>
+<!-- Clock face -->
+<circle cx="848" cy="236" r="10" fill="none" stroke="#fff" stroke-width="1.8"/>
+<line x1="848" y1="236" x2="848" y2="229" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="848" y1="236" x2="854" y2="236" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+<!-- SCHEDULED badge -->
+<rect x="872" y="222" width="126" height="15" rx="7" fill="#7719AA"/>
+<text x="935" y="232" text-anchor="middle" class="badge-txt">⏰ SCHEDULED JOB</text>
+
+<text x="915" y="266" text-anchor="middle" class="svc-name">truepath-rag-job</text>
+<text x="915" y="280" text-anchor="middle" class="svc-detail">Python Indexer</text>
+<line x1="830" y1="290" x2="1000" y2="290" stroke="#E4D4F5" stroke-width="1"/>
+<text x="915" y="303" text-anchor="middle" class="svc-small">CRON: 0 6 * * * UTC</text>
+<text x="915" y="315" text-anchor="middle" class="svc-small">(daily 6 AM · on-demand)</text>
+<text x="915" y="327" text-anchor="middle" class="svc-small">Reads Blob → embeds → pgvector</text>
+<rect x="835" y="336" width="156" height="13" rx="6" fill="#EDE0FF"/>
+<text x="913" y="346" text-anchor="middle" font-size="8" fill="#7719AA" font-weight="600">🔐 Managed Identity</text>
+
+<!-- ─── FLOW ARROWS inside CAE ─── -->
+<!-- Frontend → Backend -->
+<line x1="246" y1="308" x2="318" y2="308" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
+<rect x="252" y="298" width="60" height="14" rx="3" fill="#D4E8FF"/>
+<text x="282" y="309" text-anchor="middle" class="arr-lbl">/api/* proxy</text>
+
+<!-- Backend → Python -->
+<line x1="518" y1="308" x2="590" y2="308" stroke="#0078D4" stroke-width="2" marker-end="url(#ab)"/>
+<rect x="524" y="298" width="60" height="14" rx="3" fill="#D4E8FF"/>
+<text x="554" y="309" text-anchor="middle" class="arr-lbl">HTTP / internal</text>
+
+<!-- Backend → RAG Job (dashed, same image) -->
+<path d="M 518 270 Q 640 248 820 268" fill="none" stroke="#7719AA" stroke-width="1" stroke-dasharray="5,3"/>
+<text x="668" y="246" text-anchor="middle" font-size="8" fill="#7719AA">shares python image</text>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SUPPORTING RESOURCES ROW (inside Azure, below CAE)
+════════════════════════════════════════════════════════════════ -->
+
+<!-- ─── ACR ─── -->
+<rect x="28" y="578" width="210" height="72" rx="6" fill="#fff" stroke="#0078D4" stroke-width="1.5" filter="url(#sh-sm)"/>
+<rect x="40" y="590" width="30" height="30" rx="5" fill="#0078D4"/>
+<!-- Grid icon -->
+<rect x="46" y="596" width="7" height="7" rx="1" fill="#fff"/>
+<rect x="56" y="596" width="7" height="7" rx="1" fill="#fff"/>
+<rect x="46" y="606" width="7" height="7" rx="1" fill="#fff"/>
+<rect x="56" y="606" width="7" height="7" rx="1" fill="#fff"/>
+<text x="78" y="600" class="res-name">truepathacr</text>
+<text x="78" y="612" class="res-detail">Azure Container Registry</text>
+<text x="78" y="624" class="res-detail">SKU: Basic · truepathacr.azurecr.io</text>
+<text x="78" y="636" class="res-detail">3 images: frontend · backend · python</text>
+
+<!-- ACR → CAE dashed arrow -->
+<path d="M 133 578 L 133 564" fill="none" stroke="#999" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#agy)"/>
+<text x="138" y="573" font-size="8" fill="#888">image pull</text>
+
+<!-- ─── Key Vault ─── -->
+<rect x="254" y="578" width="220" height="72" rx="6" fill="#fff" stroke="#0078D4" stroke-width="1.5" filter="url(#sh-sm)"/>
+<rect x="266" y="590" width="30" height="30" rx="5" fill="#0078D4"/>
+<!-- Key icon -->
+<circle cx="276" cy="601" r="5" fill="none" stroke="#fff" stroke-width="1.8"/>
+<line x1="280" y1="605" x2="289" y2="614" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="286" y1="611" x2="289" y2="608" stroke="#fff" stroke-width="1.2"/>
+<text x="304" y="600" class="res-name">truepath-kv</text>
+<text x="304" y="612" class="res-detail">Azure Key Vault</text>
+<text x="304" y="624" class="res-detail">3 secrets (OPENAI_API_KEY,</text>
+<text x="304" y="636" class="res-detail">SUPABASE_URL, SUPABASE_SERVICE_KEY)</text>
+
+<!-- KV → CAE dashed arrow -->
+<path d="M 364 578 L 418 564" fill="none" stroke="#999" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#agy)"/>
+<text x="410" y="575" font-size="8" fill="#888">secrets</text>
+
+<!-- ─── Blob Storage ─── -->
+<rect x="490" y="578" width="220" height="72" rx="6" fill="#fff" stroke="#0078D4" stroke-width="1.5" filter="url(#sh-sm)"/>
+<rect x="502" y="590" width="30" height="30" rx="5" fill="#0078D4"/>
+<!-- Stacked layers icon -->
+<ellipse cx="517" cy="598" rx="8" ry="3" fill="#fff"/>
+<rect cx="509" cy="598" x="509" y="598" width="16" height="8" fill="#fff"/>
+<ellipse cx="517" cy="606" rx="8" ry="3" fill="none" stroke="#50E6FF" stroke-width="1.2"/>
+<ellipse cx="517" cy="611" rx="8" ry="3" fill="none" stroke="#50E6FF" stroke-width="1.2"/>
+<text x="540" y="600" class="res-name">truepathstorage</text>
+<text x="540" y="612" class="res-detail">Azure Blob Storage (Standard LRS)</text>
+<text x="540" y="624" class="res-detail">Container: rag-data</text>
+<text x="540" y="636" class="res-detail">PDF · Excel source files for RAG</text>
+
+<!-- Storage ↔ RAG Job arrow -->
+<path d="M 600 578 L 700 564 L 870 430" fill="none" stroke="#7719AA" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#apu)"/>
+<text x="730" y="497" font-size="8" fill="#7719AA">read source files</text>
+
+<!-- ─── Log Analytics ─── -->
+<rect x="726" y="578" width="222" height="72" rx="6" fill="#fff" stroke="#0078D4" stroke-width="1.5" filter="url(#sh-sm)"/>
+<rect x="738" y="590" width="30" height="30" rx="5" fill="#0078D4"/>
+<!-- Bar chart icon -->
+<rect x="744" y="612" width="4" height="6" fill="#fff"/>
+<rect x="750" y="608" width="4" height="10" fill="#fff"/>
+<rect x="756" y="603" width="4" height="15" fill="#fff"/>
+<!-- Magnifier -->
+<circle cx="764" cy="596" r="4" fill="none" stroke="#fff" stroke-width="1.5"/>
+<line x1="767" y1="599" x2="770" y2="602" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+<text x="776" y="600" class="res-name">truepath-logs</text>
+<text x="776" y="612" class="res-detail">Log Analytics Workspace</text>
+<text x="776" y="624" class="res-detail">Structured JSON · Pino · Request IDs</text>
+<text x="776" y="636" class="res-detail">All 3 services stream logs here</text>
+
+<!-- Log Analytics ← all services arrow (single representative) -->
+<path d="M 837 578 L 837 564" fill="none" stroke="#999" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#agy)"/>
+<text x="842" y="573" font-size="8" fill="#888">telemetry</text>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MANAGED IDENTITY PANEL (right side, inside Azure)
+════════════════════════════════════════════════════════════════ -->
+<rect x="1048" y="192" width="330" height="136" rx="6" fill="#fff" stroke="#0078D4" stroke-width="1.5" filter="url(#sh-sm)"/>
+<rect x="1048" y="192" width="330" height="24" rx="6" fill="#0078D4"/>
+<text x="1064" y="208" font-size="10" font-weight="700" fill="#fff">🔐  truepath-staging-id</text>
+<text x="1355" y="208" text-anchor="end" font-size="9" fill="#90CAFF">User-Assigned Managed Identity</text>
+
+<text x="1064" y="228" class="res-name">Role Assignments</text>
+<!-- Row 1 -->
+<rect x="1064" y="234" width="10" height="10" rx="2" fill="#107C10"/>
+<text x="1080" y="243" class="res-detail">AcrPull  →  truepathacr</text>
+<!-- Row 2 -->
+<rect x="1064" y="250" width="10" height="10" rx="2" fill="#0078D4"/>
+<text x="1080" y="259" class="res-detail">Key Vault Secrets User  →  truepath-kv</text>
+<!-- Row 3 -->
+<rect x="1064" y="266" width="10" height="10" rx="2" fill="#C55A11"/>
+<text x="1080" y="275" class="res-detail">Storage Blob Data Contributor  →  truepathstorage</text>
+
+<line x1="1064" y1="285" x2="1365" y2="285" stroke="#EEE" stroke-width="1"/>
+<text x="1064" y="298" class="res-detail">All Container Apps + Job share this identity</text>
+<text x="1064" y="311" class="res-detail">No credentials in code or environment files</text>
+
+<!-- ─── OUTBOUND connections (Azure boundary exit points) ─── -->
+<!-- Backend down arrow through boundary -->
+<line x1="418" y1="660" x2="418" y2="676" stroke="#107C10" stroke-width="2" marker-end="url(#ag)"/>
+<!-- Python down arrow through boundary -->
+<line x1="690" y1="660" x2="690" y2="676" stroke="#107C10" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#ag)" opacity=".7"/>
+<!-- RAG Job down arrow to Supabase -->
+<line x1="238" y1="660" x2="238" y2="676" stroke="#107C10" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#ag)" opacity=".7"/>
+
+<!-- Backend → OpenAI exit -->
+<line x1="510" y1="660" x2="510" y2="676" stroke="#C55A11" stroke-width="2" marker-end="url(#ao)"/>
+<!-- Python → OpenAI exit -->
+<line x1="740" y1="660" x2="740" y2="676" stroke="#C55A11" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#ao)" opacity=".7"/>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     EXTERNAL SERVICES ZONE
+════════════════════════════════════════════════════════════════ -->
+<rect x="16" y="668" width="1408" height="152" rx="8" fill="#F5F5F5" stroke="#999" stroke-width="1.5" stroke-dasharray="7,4"/>
+<text x="36" y="686" class="zone-lbl" fill="#666">EXTERNAL SERVICES  —  UNCHANGED IN STAGING</text>
+
+<!-- ─── Supabase ─── -->
+<rect x="100" y="695" width="310" height="112" rx="6" fill="#fff" stroke="#3ECF8E" stroke-width="1.8" filter="url(#sh-sm)"/>
+<!-- Supabase logo (bolt) -->
+<rect x="114" y="708" width="32" height="32" rx="5" fill="#3ECF8E"/>
+<polygon points="132,712 124,726 129,726 122,740 136,722 130,722" fill="#fff"/>
+<text x="160" y="720" class="res-name">Supabase Cloud</text>
+<text x="160" y="733" class="res-detail">PostgreSQL 15 + pgvector extension</text>
+<line x1="114" y1="742" x2="396" y2="742" stroke="#E0F8F0" stroke-width="1"/>
+<text x="114" y="754" class="res-detail" font-size="8">Connections from:</text>
+<rect x="114" y="759" width="56" height="12" rx="3" fill="#E0F8F0"/>
+<text x="142" y="769" text-anchor="middle" font-size="8" fill="#107C10" font-weight="600">backend</text>
+<rect x="176" y="759" width="50" height="12" rx="3" fill="#E0F8F0"/>
+<text x="201" y="769" text-anchor="middle" font-size="8" fill="#107C10" font-weight="600">python</text>
+<rect x="232" y="759" width="54" height="12" rx="3" fill="#E0F8F0"/>
+<text x="259" y="769" text-anchor="middle" font-size="8" fill="#7719AA" font-weight="600">rag-job</text>
+<text x="255" y="790" text-anchor="middle" font-size="9" fill="#3ECF8E">oqcthtuqvkphclwvalsf.supabase.co</text>
+
+<!-- ─── OpenAI ─── -->
+<rect x="480" y="695" width="310" height="112" rx="6" fill="#fff" stroke="#10a37f" stroke-width="1.8" filter="url(#sh-sm)"/>
+<!-- OpenAI logo (simplified) -->
+<rect x="494" y="708" width="32" height="32" rx="5" fill="#10a37f"/>
+<circle cx="510" cy="724" r="9" fill="none" stroke="#fff" stroke-width="2"/>
+<circle cx="510" cy="724" r="4" fill="#fff"/>
+<text x="538" y="720" class="res-name">OpenAI API</text>
+<text x="538" y="733" class="res-detail">LLM inference + text embeddings</text>
+<line x1="494" y1="742" x2="776" y2="742" stroke="#E0F8F4" stroke-width="1"/>
+<text x="494" y="754" class="res-detail" font-size="8">Models:</text>
+<rect x="494" y="759" width="60" height="12" rx="3" fill="#E0F8F4"/>
+<text x="524" y="769" text-anchor="middle" font-size="8" fill="#10a37f" font-weight="600">gpt-4o</text>
+<rect x="560" y="759" width="80" height="12" rx="3" fill="#E0F8F4"/>
+<text x="600" y="769" text-anchor="middle" font-size="8" fill="#10a37f" font-weight="600">gpt-4.1-mini</text>
+<rect x="646" y="759" width="120" height="12" rx="3" fill="#E0F8F4"/>
+<text x="706" y="769" text-anchor="middle" font-size="8" fill="#10a37f" font-weight="600">text-embedding-3-small</text>
+<text x="635" y="790" text-anchor="middle" font-size="9" fill="#10a37f">api.openai.com  ·  Used by backend + python</text>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     LEGEND
+════════════════════════════════════════════════════════════════ -->
+<rect x="866" y="695" width="558" height="112" rx="6" fill="#fff" stroke="#DDD" stroke-width="1" filter="url(#sh-sm)"/>
+<text x="882" y="714" font-size="11" font-weight="700" fill="#333">Legend</text>
+<line x1="882" y1="718" x2="1410" y2="718" stroke="#EEE" stroke-width="1"/>
+
+<!-- Col 1 -->
+<line x1="882" y1="733" x2="916" y2="733" stroke="#0078D4" stroke-width="2.5" marker-end="url(#ab)"/>
+<text x="924" y="737" class="leg-txt">Request / proxy path</text>
+
+<line x1="882" y1="751" x2="916" y2="751" stroke="#107C10" stroke-width="2" marker-end="url(#ag)"/>
+<text x="924" y="755" class="leg-txt">Database connection (Supabase)</text>
+
+<line x1="882" y1="769" x2="916" y2="769" stroke="#C55A11" stroke-width="2" marker-end="url(#ao)"/>
+<text x="924" y="773" class="leg-txt">AI / LLM calls (OpenAI)</text>
+
+<line x1="882" y1="787" x2="916" y2="787" stroke="#7719AA" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#apu)"/>
+<text x="924" y="791" class="leg-txt">Scheduled job flow (RAG indexer)</text>
+
+<!-- Col 2 -->
+<line x1="1100" y1="733" x2="1134" y2="733" stroke="#999" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#agy)"/>
+<text x="1142" y="737" class="leg-txt">Infrastructure (image pull / secrets)</text>
+
+<line x1="1100" y1="751" x2="1134" y2="751" stroke="#107C10" stroke-width="1.5" stroke-dasharray="5,2" opacity=".7" marker-end="url(#ag)"/>
+<text x="1142" y="755" class="leg-txt">Secondary data path (same service, lighter)</text>
+
+<rect x="1100" y="762" width="14" height="14" rx="3" fill="#107C10"/>
+<text x="1142" y="773" class="leg-txt">AcrPull role</text>
+
+<rect x="1100" y="780" width="14" height="14" rx="3" fill="#0078D4"/>
+<text x="1142" y="791" class="leg-txt">Key Vault Secrets User role</text>
+
+<rect x="1282" y="762" width="14" height="14" rx="3" fill="#C55A11"/>
+<text x="1304" y="773" class="leg-txt">Storage Blob Data Contributor</text>
+
+<text x="1282" y="791" class="leg-txt">All traffic crosses Azure boundary</text>
+<text x="1282" y="800" class="leg-txt">encrypted via HTTPS/TLS</text>
+
+</svg>

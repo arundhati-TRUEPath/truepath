@@ -102,29 +102,53 @@ $secrets = @{
 }
 Log "Secrets loaded: $($secrets.Keys -join ', ')"
 
-# ── 2.1 Ensure extensions ────────────────────────────────────────────────────
+# ── 2.1 Ensure extensions + register resource providers ──────────────────────
 Log "Ensuring required az extensions..."
 az extension add --name containerapp --only-show-errors 2>$null
 az extension add --name log-analytics --only-show-errors 2>$null
 Log "Extensions ready."
 
+Log "Registering required resource providers (safe to run even if already registered)..."
+$providers = @(
+    "Microsoft.ContainerRegistry",   # ACR
+    "Microsoft.App",                 # Container Apps
+    "Microsoft.OperationalInsights", # Log Analytics
+    "Microsoft.KeyVault",
+    "Microsoft.Storage",
+    "Microsoft.ManagedIdentity"
+)
+foreach ($ns in $providers) {
+    $state = (az provider show --namespace $ns --query "registrationState" -o tsv 2>$null)
+    if ($state -ne "Registered") {
+        Log "  Registering $ns (state: $state) — this can take 1-3 min..."
+        az provider register --namespace $ns --wait | Out-Null
+        Log "  $ns registered."
+    } else {
+        Log "  $ns already registered."
+    }
+}
+
 # ── 2.2 Azure Container Registry ─────────────────────────────────────────────
 Log "Creating ACR: $ACR_NAME..."
-$acrJson = az acr create `
+$acrRaw = az acr create `
     --name $ACR_NAME `
     --resource-group $RG `
     --sku Basic `
     --admin-enabled true `
-    --location $LOCATION | ConvertFrom-Json
+    --location $LOCATION
+if ($LASTEXITCODE -ne 0) { Die "ACR creation failed. Raw output: $acrRaw" }
+$acrJson = $acrRaw | ConvertFrom-Json
 $ACR_LOGIN_SERVER = $acrJson.loginServer
 Log "ACR created: $ACR_LOGIN_SERVER"
 
 # ── 2.3 Log Analytics Workspace ───────────────────────────────────────────────
 Log "Creating Log Analytics Workspace: $LAW_NAME..."
-$lawJson = az monitor log-analytics workspace create `
+$lawRaw = az monitor log-analytics workspace create `
     --workspace-name $LAW_NAME `
     --resource-group $RG `
-    --location $LOCATION | ConvertFrom-Json
+    --location $LOCATION
+if ($LASTEXITCODE -ne 0) { Die "Log Analytics workspace creation failed. Raw output: $lawRaw" }
+$lawJson = $lawRaw | ConvertFrom-Json
 $LAW_ID   = $lawJson.id
 $LAW_KEY  = (az monitor log-analytics workspace get-shared-keys `
     --workspace-name $LAW_NAME `
@@ -139,75 +163,70 @@ az containerapp env create `
     --logs-workspace-id $LAW_ID `
     --logs-workspace-key $LAW_KEY `
     --location $LOCATION | Out-Null
+if ($LASTEXITCODE -ne 0) { Die "Container Apps Environment creation failed." }
 Log "Container Apps Environment created."
 
 # ── 2.5 Key Vault + secrets ───────────────────────────────────────────────────
 Log "Creating Key Vault: $KV_NAME..."
-$kvJson = az keyvault create `
-    --name $KV_NAME `
-    --resource-group $RG `
-    --location $LOCATION | ConvertFrom-Json
+$kvRaw = az keyvault create --name $KV_NAME --resource-group $RG --location $LOCATION
+if ($LASTEXITCODE -ne 0) { Die "Key Vault creation failed. Raw output: $kvRaw" }
+$kvJson = $kvRaw | ConvertFrom-Json
 $KV_URI = $kvJson.properties.vaultUri
 Log "Key Vault URI: $KV_URI"
 
 Log "Storing secrets in Key Vault..."
 foreach ($entry in $secrets.GetEnumerator()) {
-    az keyvault secret set `
-        --vault-name $KV_NAME `
-        --name $entry.Key `
-        --value $entry.Value | Out-Null
+    az keyvault secret set --vault-name $KV_NAME --name $entry.Key --value $entry.Value | Out-Null
+    if ($LASTEXITCODE -ne 0) { Die "Failed to store secret: $($entry.Key)" }
     Log "  Stored: $($entry.Key)"
 }
 
-# Capture Key Vault secret URIs (needed for Container App --secrets flag)
+# Capture version-less Key Vault secret URIs (used in Phase 4 --secrets flag)
 $KV_SECRET_URIS = @{}
 foreach ($key in $secrets.Keys) {
     $uri = (az keyvault secret show --vault-name $KV_NAME --name $key | ConvertFrom-Json).id
-    # Strip the version suffix so the reference always gets the latest
     $KV_SECRET_URIS[$key] = ($uri -replace '/[^/]+$', '')
     Log "  URI: $($KV_SECRET_URIS[$key])"
 }
 
 # ── 2.6 Storage Account + blob container ──────────────────────────────────────
 Log "Creating Storage Account: $SA_NAME..."
-$saJson = az storage account create `
-    --name $SA_NAME `
-    --resource-group $RG `
-    --sku Standard_LRS `
-    --location $LOCATION | ConvertFrom-Json
+$saRaw = az storage account create --name $SA_NAME --resource-group $RG --sku Standard_LRS --location $LOCATION
+if ($LASTEXITCODE -ne 0) { Die "Storage account creation failed. Raw output: $saRaw" }
+$saJson = $saRaw | ConvertFrom-Json
 $SA_ID = $saJson.id
 Log "Storage account created: $SA_ID"
 
 Log "Creating blob container: $BLOB_CTR..."
-az storage container create `
-    --name $BLOB_CTR `
-    --account-name $SA_NAME `
-    --auth-mode login | Out-Null
+az storage container create --name $BLOB_CTR --account-name $SA_NAME --auth-mode login | Out-Null
+if ($LASTEXITCODE -ne 0) { Die "Blob container creation failed." }
 Log "Blob container '$BLOB_CTR' created."
 
 # ── 2.7 Managed Identity + role assignments ────────────────────────────────────
 Log "Creating Managed Identity: $MI_NAME..."
-$miJson = az identity create `
-    --name $MI_NAME `
-    --resource-group $RG | ConvertFrom-Json
+$miRaw = az identity create --name $MI_NAME --resource-group $RG
+if ($LASTEXITCODE -ne 0) { Die "Managed Identity creation failed. Raw output: $miRaw" }
+$miJson = $miRaw | ConvertFrom-Json
 $MI_RESOURCE_ID    = $miJson.id
 $MI_PRINCIPAL_ID   = $miJson.principalId
 $MI_CLIENT_ID      = $miJson.clientId
 Log "Identity principal ID: $MI_PRINCIPAL_ID"
 Log "Identity client ID:    $MI_CLIENT_ID"
 
-Log "Waiting 20s for identity propagation before role assignments..."
-Start-Sleep -Seconds 20
+Log "Waiting 30s for identity propagation before role assignments..."
+Start-Sleep -Seconds 30
 
 $ACR_SCOPE = "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.ContainerRegistry/registries/$ACR_NAME"
 $KV_SCOPE  = "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/$KV_NAME"
 $SA_SCOPE  = "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/$SA_NAME"
 
 Log "Assigning AcrPull..."
-az role assignment create --assignee $MI_PRINCIPAL_ID --role "AcrPull"            --scope $ACR_SCOPE | Out-Null
+az role assignment create --assignee $MI_PRINCIPAL_ID --role "AcrPull" --scope $ACR_SCOPE | Out-Null
+if ($LASTEXITCODE -ne 0) { Die "AcrPull role assignment failed." }
 
 Log "Assigning Key Vault Secrets User..."
 az role assignment create --assignee $MI_PRINCIPAL_ID --role "Key Vault Secrets User" --scope $KV_SCOPE | Out-Null
+if ($LASTEXITCODE -ne 0) { Die "Key Vault Secrets User role assignment failed." }
 
 Log "Assigning Storage Blob Data Contributor..."
 az role assignment create --assignee $MI_PRINCIPAL_ID --role "Storage Blob Data Contributor" --scope $SA_SCOPE | Out-Null

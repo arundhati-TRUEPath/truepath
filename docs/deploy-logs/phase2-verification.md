@@ -206,6 +206,32 @@ If role assignments still fail, wait another 30s and re-run the three `az role a
 ### L7: `containerapp` az extension required before any Container Apps commands
 **Fix applied**: Script runs `az extension add --name containerapp` in the pre-flight section.
 
+### L9: Resource providers not registered on new subscription
+**What happened**: `az acr create` failed with `MissingSubscriptionRegistration` for `Microsoft.ContainerRegistry`. New Azure subscriptions (especially DevOps/trial subscriptions) do not auto-register resource providers — they are registered on first use via the portal, or explicitly via CLI.
+
+**Providers required for this deployment**:
+| Namespace | Used for |
+|---|---|
+| `Microsoft.ContainerRegistry` | ACR (step 2.2) |
+| `Microsoft.App` | Container Apps (step 2.4) |
+| `Microsoft.OperationalInsights` | Log Analytics (step 2.3) |
+| `Microsoft.KeyVault` | Key Vault (step 2.5) |
+| `Microsoft.Storage` | Storage Account (step 2.6) |
+| `Microsoft.ManagedIdentity` | Managed Identity (step 2.7) |
+
+**Immediate fix** (run in Cloud Shell before re-running script):
+```powershell
+az provider register --namespace Microsoft.ContainerRegistry --wait
+az provider register --namespace Microsoft.App --wait
+az provider register --namespace Microsoft.OperationalInsights --wait
+```
+
+**Fix applied in script**: Pre-flight now checks each provider's `registrationState` and calls `az provider register --wait` only if not already `Registered`. Idempotent — safe to re-run.
+
+**Secondary fix applied**: All resource creation calls now capture raw output before `ConvertFrom-Json` and check `$LASTEXITCODE`. A failed call now shows the raw error text instead of a cryptic null-reference crash.
+
+---
+
 ### L8: Script `.env` path resolution fails in Azure Cloud Shell
 **What happened**: When running from Cloud Shell, the script is uploaded flat to `/home/arundhati/` but it resolved `$PSScriptRoot/../backend/.env` which doesn't exist in that environment.
 

@@ -170,10 +170,15 @@ Log "Container Apps Environment created."
 
 # ── 2.5 Key Vault + secrets ───────────────────────────────────────────────────
 Log "Creating Key Vault: $KV_NAME..."
-$kvRaw = az keyvault create --name $KV_NAME --resource-group $RG --location $LOCATION
-if ($LASTEXITCODE -ne 0) { Die "Key Vault creation failed. Raw output: $kvRaw" }
-$kvJson = $kvRaw | ConvertFrom-Json
-$KV_URI = $kvJson.properties.vaultUri
+$kvExistingRaw = az keyvault show --name $KV_NAME --resource-group $RG 2>$null
+if ($LASTEXITCODE -eq 0 -and $kvExistingRaw) {
+    Log "Key Vault $KV_NAME already exists, reusing."
+    $KV_URI = ($kvExistingRaw | ConvertFrom-Json).properties.vaultUri
+} else {
+    $kvRaw = az keyvault create --name $KV_NAME --resource-group $RG --location $LOCATION
+    if ($LASTEXITCODE -ne 0) { Die "Key Vault creation failed. Raw output: $kvRaw" }
+    $KV_URI = ($kvRaw | ConvertFrom-Json).properties.vaultUri
+}
 Log "Key Vault URI: $KV_URI"
 
 # Grant the deploying identity "Key Vault Secrets Officer" so this script can write secrets.
@@ -181,19 +186,22 @@ Log "Key Vault URI: $KV_URI"
 $KV_SCOPE_WRITE = "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/$KV_NAME"
 $DEPLOYER_OID = (az ad signed-in-user show --query id -o tsv 2>$null)
 if (-not $DEPLOYER_OID) {
-    # Cloud Shell service principal — fall back to account object id
-    $DEPLOYER_OID = (az account show --query user.name -o tsv)
     Die "Cannot resolve deployer OID. Grant 'Key Vault Secrets Officer' manually on $KV_NAME, then re-run."
 }
-Log "Granting Key Vault Secrets Officer to deployer OID: $DEPLOYER_OID..."
-az role assignment create `
-    --assignee-object-id $DEPLOYER_OID `
-    --assignee-principal-type User `
-    --role "Key Vault Secrets Officer" `
-    --scope $KV_SCOPE_WRITE | Out-Null
-if ($LASTEXITCODE -ne 0) { Die "Failed to grant Key Vault Secrets Officer to deployer." }
-Log "Role granted. Waiting 20s for RBAC propagation..."
-Start-Sleep -Seconds 20
+$existingDeployerRole = (az role assignment list --assignee $DEPLOYER_OID --role "Key Vault Secrets Officer" --scope $KV_SCOPE_WRITE --query "[0].id" -o tsv 2>$null)
+if (-not $existingDeployerRole) {
+    Log "Granting Key Vault Secrets Officer to deployer OID: $DEPLOYER_OID..."
+    az role assignment create `
+        --assignee-object-id $DEPLOYER_OID `
+        --assignee-principal-type User `
+        --role "Key Vault Secrets Officer" `
+        --scope $KV_SCOPE_WRITE | Out-Null
+    if ($LASTEXITCODE -ne 0) { Die "Failed to grant Key Vault Secrets Officer to deployer." }
+    Log "Role granted. Waiting 20s for RBAC propagation..."
+    Start-Sleep -Seconds 20
+} else {
+    Log "Key Vault Secrets Officer already assigned to deployer, skipping wait."
+}
 
 Log "Storing secrets in Key Vault..."
 foreach ($entry in $secrets.GetEnumerator()) {

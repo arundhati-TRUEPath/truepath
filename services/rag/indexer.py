@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
+import tempfile
 from pathlib import Path
 
 from supabase import create_client, Client
@@ -18,6 +20,29 @@ logger = logging.getLogger(__name__)
 
 def _db() -> Client:
     return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+
+
+def _download_from_blob() -> Path:
+    from azure.identity import DefaultAzureCredential
+    from azure.storage.blob import BlobServiceClient
+
+    account_name = os.environ["AZURE_STORAGE_ACCOUNT_NAME"]
+    container_name = os.environ.get("AZURE_STORAGE_CONTAINER", "rag-data")
+    account_url = f"https://{account_name}.blob.core.windows.net"
+
+    credential = DefaultAzureCredential()
+    service = BlobServiceClient(account_url=account_url, credential=credential)
+    container = service.get_container_client(container_name)
+
+    tmp_dir = Path(tempfile.mkdtemp())
+    for blob in container.list_blobs():
+        dest = tmp_dir / blob.name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with open(dest, "wb") as fh:
+            fh.write(container.get_blob_client(blob.name).download_blob().readall())
+        logger.info("downloaded blob %s", blob.name)
+
+    return tmp_dir
 
 
 def _upsert_document(db: Client, file_name: str, file_type: str, source_path: str) -> str:
@@ -49,7 +74,17 @@ def _upsert_chunks(
 
 
 def build_index(rag_data_dir: Path | None = None) -> dict:
-    data_dir = rag_data_dir or _RAG_DATA_DIR
+    storage_mode = os.getenv("STORAGE_MODE", "local")
+    tmp_dir: Path | None = None
+
+    if rag_data_dir is not None:
+        data_dir = rag_data_dir
+    elif storage_mode == "azure":
+        tmp_dir = _download_from_blob()
+        data_dir = tmp_dir
+    else:
+        data_dir = _RAG_DATA_DIR
+
     db = _db()
     processed: list[dict] = []
     errors: list[dict] = []
@@ -85,5 +120,8 @@ def build_index(rag_data_dir: Path | None = None) -> dict:
         except Exception as exc:
             logger.error("failed to ingest %s: %s", file_path.name, exc)
             errors.append({"file": file_path.name, "reason": str(exc)})
+
+    if tmp_dir is not None:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
     return {"processed": processed, "errors": errors}

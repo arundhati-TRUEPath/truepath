@@ -48,10 +48,8 @@ export const recommendPathways = (sessionId: string): Promise<PathwayResponse> =
     .post<ApiResponse<PathwayResponse>>(`${v1}/pathways/recommend`, { sessionId })
     .then((r) => r.data.data!);
 
-export const pathwaysPdfUrl = (sessionId: string): string => {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
-  return `${base}${v1}/pathways/export-pdf?sessionId=${encodeURIComponent(sessionId)}`;
-};
+export const pathwaysPdfUrl = (sessionId: string): string =>
+  `${v1}/pathways/export-pdf?sessionId=${encodeURIComponent(sessionId)}`;
 
 export const generatePlan = (
   answers: IntakeAnswer[],

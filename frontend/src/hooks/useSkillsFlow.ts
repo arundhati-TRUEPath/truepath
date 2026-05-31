@@ -30,7 +30,7 @@ export function useSkillsFlow(): SkillsFlowState {
     queryFn: () => inferSkills(sessionId),
     enabled: !!sessionId,
     staleTime: Infinity,
-    retry: 1,
+    retry: (count, err) => count < 1 && (err as AppError).retryable === true,
   });
 
   useEffect(() => {

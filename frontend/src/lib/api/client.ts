@@ -14,7 +14,7 @@ export interface ApiResponse<T> {
 
 const client = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000',
-  timeout: 30_000,
+  timeout: 90_000,
   headers: { 'Content-Type': 'application/json' },
 });
 

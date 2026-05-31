@@ -119,6 +119,7 @@ The following will **not** be built for the MVP: Do not include these in further
 - Motivations: Stable employment; reliable income and benefits; faster workforce re-entry; long-term career security and advancement opportunities.
 - Age: 42,Former warehouse and logistics supervisor with 15 years of experience who was recently laid off due to automation and restructuring.
 
+
 ** Persona 5 - Immigrant / ESL Learner** 
 - Needs Simplified healthcare career guidance with clear explanations of training programs, certifications, and next steps.
 - Pain Points: Language barriers; unfamiliar workforce systems; difficulty understanding technical terminology; limited professional network in the U.S.

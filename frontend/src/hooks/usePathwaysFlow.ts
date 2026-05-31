@@ -33,7 +33,7 @@ export function usePathwaysFlow(): PathwaysFlowState {
     queryFn: () => recommendPathways(sessionId),
     enabled: !!sessionId,
     staleTime: Infinity,
-    retry: 1,
+    retry: (count, err) => count < 1 && (err as AppError).retryable === true,
   });
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export function usePathwaysFlow(): PathwaysFlowState {
   }
 
   return {
-    isLoading: pathwaysQuery.isLoading || !pathwaysQuery.data,
+    isLoading: pathwaysQuery.isPending,
     pathways: pathwaysQuery.data?.pathways ?? [],
     limitations: pathwaysQuery.data?.limitations ?? EMPTY_LIMITATIONS,
     expandedIds,

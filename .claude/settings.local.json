@@ -44,7 +44,14 @@
       "Bash(awk '$9 ~ /:\\(3000|4000|8000\\)$/ {print}')",
       "Bash(lsof -ti:3000,4000,8000)",
       "Bash(xargs -r kill)",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); p=d['data']['pathways']; print\\('OK:', len\\(p\\), 'pathways · cached=' + str\\(d['meta'].get\\('cached'\\)\\) + ' · sources=' + ','.join\\(d['meta'].get\\('sourceFiles', []\\)\\)\\); [print\\(f' rank {x[\\\\\"rank\\\\\"]}: {x[\\\\\"title\\\\\"]} \\(conf {x[\\\\\"confidence\\\\\"]}\\)'\\) for x in p]\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); p=d['data']['pathways']; print\\('OK:', len\\(p\\), 'pathways · cached=' + str\\(d['meta'].get\\('cached'\\)\\) + ' · sources=' + ','.join\\(d['meta'].get\\('sourceFiles', []\\)\\)\\); [print\\(f' rank {x[\\\\\"rank\\\\\"]}: {x[\\\\\"title\\\\\"]} \\(conf {x[\\\\\"confidence\\\\\"]}\\)'\\) for x in p]\")",
+      "PowerShell(Get-Job *)",
+      "PowerShell(python -m pip install --user uvicorn fastapi 2>&1 | Select-Object -Last 10)",
+      "PowerShell(python -m pip install --user -r \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\\\\services\\\\requirements.txt\" 2>&1 | Select-Object -Last 5)",
+      "PowerShell($env:PATH)",
+      "PowerShell(\\(Get-Command npm -ErrorAction SilentlyContinue\\).Source)",
+      "PowerShell(& \"C:\\\\Users\\\\ArundhatiRoy\\\\code\\\\node-v24.15.0\\\\npm.cmd\" install -g @anthropic-ai/claude-code)",
+      "PowerShell($d = \"c:\\\\Users\\\\ArundhatiRoy\\\\code\\\\truepath\"; Get-ChildItem \"$d\\\\.claude\\\\skills\" -ErrorAction SilentlyContinue | ForEach-Object { Get-Content \"$\\($_.FullName\\)\\\\SKILL.md\" -TotalCount 3 -ErrorAction SilentlyContinue })"
     ]
   }
 }

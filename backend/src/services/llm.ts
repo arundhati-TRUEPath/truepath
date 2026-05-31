@@ -8,10 +8,17 @@ import { SKILLS_SYSTEM_PROMPT } from '../prompts/skills-system-prompt';
 import type { IntakeAnswer, Question } from '../types/intake';
 import type { SessionQA } from '../repositories/sessions.repo';
 
-const LlmOptionSchema = z.object({
+const LlmOptionSchema = z.preprocess((raw) => {
+  if (typeof raw !== 'object' || raw === null) return raw;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj['option_key'] === 'string') return obj;
+  // LLM hallucination: used the value as the key name e.g. { "opt_b": "opt_b", label: "..." }
+  const altKey = Object.keys(obj).find((k) => k !== 'label');
+  return { option_key: altKey ?? '', label: obj['label'] };
+}, z.object({
   option_key: z.string().min(1),
   label: z.string().min(1),
-});
+}));
 
 const QUESTION_CATEGORIES = [
   'barriers', 'schedule', 'caregiving', 'finances', 'motivation',

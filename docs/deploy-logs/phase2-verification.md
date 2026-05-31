@@ -206,6 +206,17 @@ If role assignments still fail, wait another 30s and re-run the three `az role a
 ### L7: `containerapp` az extension required before any Container Apps commands
 **Fix applied**: Script runs `az extension add --name containerapp` in the pre-flight section.
 
+### L10: `az containerapp env create --logs-workspace-id` expects the workspace GUID, not the ARM resource ID
+**What happened**: `az monitor log-analytics workspace create` returns two different IDs on the same JSON object:
+- `id` — the ARM resource ID (`/subscriptions/.../workspaces/truepath-logs`)
+- `customerId` — the workspace GUID (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`)
+
+The script was passing `id` to `--logs-workspace-id`, but Container Apps requires the **`customerId` GUID**. The error was: `LogAnalyticsConfiguration.CustomerId is invalid. CustomerId must be a GUID without additional whiteSpace.`
+
+**Fix applied**: Changed `$LAW_ID = $lawJson.id` → `$LAW_ID = $lawJson.customerId`. Both values are now stored in `deploy-outputs.json` as `law_resource_id` and `law_customer_id` for full traceability.
+
+---
+
 ### L9: Resource providers not registered on new subscription
 **What happened**: `az acr create` failed with `MissingSubscriptionRegistration` for `Microsoft.ContainerRegistry`. New Azure subscriptions (especially DevOps/trial subscriptions) do not auto-register resource providers — they are registered on first use via the portal, or explicitly via CLI.
 

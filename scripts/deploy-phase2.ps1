@@ -149,11 +149,13 @@ $lawRaw = az monitor log-analytics workspace create `
     --location $LOCATION
 if ($LASTEXITCODE -ne 0) { Die "Log Analytics workspace creation failed. Raw output: $lawRaw" }
 $lawJson = $lawRaw | ConvertFrom-Json
-$LAW_ID   = $lawJson.id
-$LAW_KEY  = (az monitor log-analytics workspace get-shared-keys `
+$LAW_RESOURCE_ID = $lawJson.id
+$LAW_ID  = $lawJson.customerId   # GUID required by az containerapp env create
+$LAW_KEY = (az monitor log-analytics workspace get-shared-keys `
     --workspace-name $LAW_NAME `
     --resource-group $RG | ConvertFrom-Json).primarySharedKey
-Log "Log Analytics Workspace ID: $LAW_ID"
+Log "Log Analytics Workspace resource ID: $LAW_RESOURCE_ID"
+Log "Log Analytics Workspace customer ID (GUID): $LAW_ID"
 
 # ── 2.4 Container Apps Environment ────────────────────────────────────────────
 Log "Creating Container Apps Environment: $ENV_NAME..."
@@ -240,7 +242,8 @@ $outputs = [ordered]@{
     location             = $LOCATION
     acr_name             = $ACR_NAME
     acr_login_server     = $ACR_LOGIN_SERVER
-    law_id               = $LAW_ID
+    law_resource_id      = $LAW_RESOURCE_ID
+    law_customer_id      = $LAW_ID
     env_name             = $ENV_NAME
     kv_name              = $KV_NAME
     kv_uri               = $KV_URI

@@ -14,8 +14,8 @@
 
   "log_analytics": {
     "name": "truepath-logs",
-    "workspace_id": "<pending>",
-    "resource_id": "<pending>"
+    "resource_id": "<pending: ARM resource ID>",
+    "customer_id": "<pending: GUID — this is what az containerapp env create --logs-workspace-id expects>"
   },
 
   "container_apps_env": {

@@ -1,4 +1,4 @@
-import axios, { type InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 export interface AppError {
   code: 'network' | 'timeout' | 'ai_error' | 'validation' | 'unknown';
@@ -40,7 +40,7 @@ client.interceptors.response.use(
     });
     return res;
   },
-  (err) => {
+  (err: AxiosError) => {
     const c = err.config as TimedConfig | undefined;
     const ms = c?.metadata ? Math.round(performance.now() - c.metadata.start) : undefined;
     console.error('[api ✗]', err.response?.status ?? err.code, err.config?.method?.toUpperCase(), err.config?.url, {

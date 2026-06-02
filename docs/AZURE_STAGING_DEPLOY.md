@@ -165,8 +165,9 @@ docker --version
 
 ## Phase 3 — Build & Push Docker Images
 
-> **No local Docker required.** Uses `az acr build` (ACR Tasks) — source is uploaded from Cloud Shell
-> and built inside Azure. Run via `scripts/deploy-phase3.ps1`.
+> **Status: COMPLETE** — all 3 images pushed to `truepathacr.azurecr.io`
+>
+> Uses `az acr build` (ACR Tasks) — no local Docker required. Run via `scripts/deploy-phase3.ps1`.
 >
 > **Automation script**: `scripts/deploy-phase3.ps1` — reads ACR name from `scripts/deploy-outputs.json`.
 
@@ -203,6 +204,9 @@ The script builds and pushes all three images using `az acr build`:
 
 ## Phase 4 — Deploy Container Apps
 
+> **Automation script**: `scripts/deploy-phase4.ps1` — reads all resource IDs from `scripts/deploy-outputs.json`.
+> Idempotent: first run creates with full config; subsequent runs update the image only.
+>
 > Deploy order: python → backend → frontend (each depends on the one below it)
 
 ### 4.1 — Python Services (internal ingress)

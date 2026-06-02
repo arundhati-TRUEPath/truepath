@@ -102,25 +102,24 @@ Supporting resources (same resource group):
 > It reads secrets from `backend/.env`, creates all resources, and writes all output IDs/URIs
 > to `scripts/deploy-outputs.json` (consumed by Phase 3 and Phase 4 scripts).
 
-### Prerequisites (must be done before running the script)
+### Cloud Shell setup (one-time, then never again)
 
+Upload two files to Azure Cloud Shell — that's it. Every phase after this runs from one command.
+
+**Files to upload once:**
+- `scripts/run.ps1`
+- `scripts/deploy-phase2.ps1`
+- `backend/.env` (contains secrets — never committed)
+
+**Run each phase:**
 ```powershell
-# 1. Install Azure CLI
-winget install Microsoft.AzureCLI
-# Open a new terminal after install so PATH refreshes
-
-# 2. Log in and install required extensions
-az login
-az extension add --name containerapp
-
-# 3. Install Docker Desktop
-# https://www.docker.com/products/docker-desktop/
-# Required for Phase 3 — install now so it's ready
-docker --version
+./run.ps1 -Phase 2    # creates all Azure infrastructure
+./run.ps1 -Phase 3    # builds + pushes Docker images
+./run.ps1 -Phase 4    # deploys Container Apps
+./run.ps1 -Phase 5    # RAG scheduled job
 ```
 
-> **Alternative**: use Azure Cloud Shell (https://shell.azure.com) — az CLI is pre-installed.
-> Upload `scripts/deploy-phase2.ps1` and `backend/.env` to the shell, then run.
+`run.ps1` always pulls the latest phase scripts from GitHub before running — bug fixes are picked up automatically, no re-uploads needed.
 
 ### 2.1 — Subscription context
 - [ ] `az account set --subscription b84e832c-ee7f-4b32-90d0-de721fed1a30`

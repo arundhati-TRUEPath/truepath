@@ -48,7 +48,7 @@ client.interceptors.response.use(
       data: err.response?.data,
       message: err.message,
     });
-    const apiError = err.response?.data?.error as { message?: string } | undefined;
+    const apiError = (err.response?.data as unknown as { error?: { message?: string } })?.error;
     const appError: AppError = {
       code:
         err.code === 'ECONNABORTED' ? 'timeout'

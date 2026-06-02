@@ -10,11 +10,8 @@ $found = @()
 foreach ($p in $StartPaths) {
     if (-not (Test-Path $p)) { continue }
     try {
-        if ($Recurse.IsPresent) {
-            $items = Get-ChildItem -Path $p -Filter 'claude.exe.old*' -File -Recurse -ErrorAction Stop
-        } else {
-            $items = Get-ChildItem -Path $p -Filter 'claude.exe.old*' -File -ErrorAction Stop
-        }
+        # Always search recursively to find nested node_modules
+        $items = Get-ChildItem -Path $p -Filter 'claude.exe.old*' -File -Recurse -ErrorAction Stop
         $found += $items
     } catch {
         Write-Output ("Warning: could not enumerate {0}: {1}" -f $p, $_.Exception.Message)

@@ -1,10 +1,10 @@
 # Phase 2 Verification Log
 
-**Date executed**: _pending_
-**Executed by**: _pending_
+**Date executed**: 2026-06-01
+**Executed by**: aroy@careerpathservices.org (Azure Cloud Shell)
 **Script**: `scripts/deploy-phase2.ps1`
 **Outputs file**: `scripts/deploy-outputs.json`
-**Status**: PENDING — az CLI and Docker not yet installed on this machine
+**Status**: COMPLETE — all resources created, secrets stored, role assignments applied
 
 ---
 
@@ -12,11 +12,11 @@
 
 | # | Check | Command | Status | Notes |
 |---|---|---|---|---|
-| P1 | az CLI installed | `az --version` | PENDING | `winget install Microsoft.AzureCLI` |
-| P2 | az CLI logged in | `az account show` | PENDING | `az login` after install |
-| P3 | containerapp extension | `az extension list` | PENDING | `az extension add --name containerapp` |
-| P4 | Docker installed | `docker --version` | PENDING | Install Docker Desktop |
-| P5 | `backend/.env` present | `Test-Path backend/.env` | PENDING | Copy from `.env.example`, fill values |
+| P1 | az CLI installed | `az --version` | DONE | Used Azure Cloud Shell — no local install needed |
+| P2 | az CLI logged in | `az account show` | DONE | Auto-authenticated in Cloud Shell |
+| P3 | containerapp extension | `az extension list` | DONE | Script auto-installs |
+| P4 | Docker installed | `docker --version` | N/A (Phase 3) | Not needed for Phase 2 |
+| P5 | `backend/.env` present | `Test-Path backend/.env` | DONE | Uploaded to `/home/arundhati/.env`; used `-EnvFile` param |
 
 ---
 
@@ -31,8 +31,8 @@ Run `scripts/deploy-phase2.ps1` and fill in the **Actual Output** column as each
 | Command | `az account set --subscription b84e832c-ee7f-4b32-90d0-de721fed1a30` |
 | Expected | No output (exit code 0) |
 | Verify | `az account show` → name = "Gitlab TRUE Path DevOps" |
-| Status | PENDING |
-| Actual output | _fill in_ |
+| Status | DONE |
+| Actual output | Active subscription: Gitlab TRUE Path DevOps (b84e832c-ee7f-4b32-90d0-de721fed1a30) |
 
 ---
 
@@ -42,10 +42,10 @@ Run `scripts/deploy-phase2.ps1` and fill in the **Actual Output** column as each
 |---|---|
 | Command | `az acr create --name truepathacr --resource-group Gitlab_TRUE_Path_rg --sku Basic --admin-enabled true --location eastus` |
 | Expected | JSON with `loginServer: "truepathacr.azurecr.io"` |
-| Status | PENDING |
-| Actual `loginServer` | _fill in_ |
-| Actual `id` | _fill in_ |
-| Contingency | If name taken → rename to `truepathacrstg`, update `deploy-outputs.json` |
+| Status | DONE (already existed, reused) |
+| Actual `loginServer` | `truepathacr.azurecr.io` |
+| Actual `id` | `/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.ContainerRegistry/registries/truepathacr` |
+| Contingency | N/A — name was available |
 
 ---
 
@@ -55,9 +55,9 @@ Run `scripts/deploy-phase2.ps1` and fill in the **Actual Output** column as each
 |---|---|
 | Command | `az monitor log-analytics workspace create --workspace-name truepath-logs --resource-group Gitlab_TRUE_Path_rg --location eastus` |
 | Expected | JSON with `id` and `customerId` |
-| Status | PENDING |
-| Actual `id` (workspace resource ID) | _fill in_ |
-| Actual `customerId` (workspace GUID) | _fill in_ |
+| Status | DONE (already existed, reused) |
+| Actual `id` (workspace resource ID) | `/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.OperationalInsights/workspaces/truepath-logs` |
+| Actual `customerId` (workspace GUID) | `2375b29f-f133-4f4c-99e6-32292819832d` |
 
 ---
 
@@ -67,9 +67,9 @@ Run `scripts/deploy-phase2.ps1` and fill in the **Actual Output** column as each
 |---|---|
 | Command | `az containerapp env create --name truepath-staging-env --resource-group Gitlab_TRUE_Path_rg --logs-workspace-id <law-id> --logs-workspace-key <law-key> --location eastus` |
 | Expected | Provisioning state: `Succeeded` |
-| Status | PENDING |
-| Actual provisioning state | _fill in_ |
-| Actual `defaultDomain` | _fill in_ (needed for CORS_ORIGIN in Phase 4) |
+| Status | DONE (already existed, reused) |
+| Actual provisioning state | Succeeded |
+| Actual `defaultDomain` | `ashybush-4cbf3768.eastus.azurecontainerapps.io` |
 
 ---
 
@@ -79,9 +79,9 @@ Run `scripts/deploy-phase2.ps1` and fill in the **Actual Output** column as each
 |---|---|
 | Command | `az keyvault create --name truepath-kv --resource-group Gitlab_TRUE_Path_rg --location eastus` |
 | Expected | JSON with `properties.vaultUri` |
-| Status | PENDING |
-| Actual `vaultUri` | _fill in_ |
-| Contingency | If name taken → rename to `truepath-kv-stg`, update `deploy-outputs.json` |
+| Status | DONE — created as `truepath-kv-stg` (access policy mode) |
+| Actual `vaultUri` | `https://truepath-kv-stg.vault.azure.net/` |
+| Contingency | Used `truepath-kv-stg` — original name `truepath-kv` existed in RBAC mode (see L13) |
 
 ---
 
@@ -89,9 +89,9 @@ Run `scripts/deploy-phase2.ps1` and fill in the **Actual Output** column as each
 
 | Secret Name | Source in `backend/.env` | Status | Verify command |
 |---|---|---|---|
-| `OPENAI-API-KEY` | `OPENAI_API_KEY` | PENDING | `az keyvault secret show --vault-name truepath-kv --name OPENAI-API-KEY` |
-| `SUPABASE-URL` | `SUPABASE_URL` | PENDING | `az keyvault secret show --vault-name truepath-kv --name SUPABASE-URL` |
-| `SUPABASE-SERVICE-KEY` | `SUPABASE_SERVICE_KEY` | PENDING | `az keyvault secret show --vault-name truepath-kv --name SUPABASE-SERVICE-KEY` |
+| `OPENAI-API-KEY` | `OPENAI_API_KEY` | DONE | `az keyvault secret show --vault-name truepath-kv-stg --name OPENAI-API-KEY` |
+| `SUPABASE-URL` | `SUPABASE_URL` | DONE | `az keyvault secret show --vault-name truepath-kv-stg --name SUPABASE-URL` |
+| `SUPABASE-SERVICE-KEY` | `SUPABASE_SERVICE_KEY` | DONE | `az keyvault secret show --vault-name truepath-kv-stg --name SUPABASE-SERVICE-KEY` |
 
 Secret URI format (versionless, used in Phase 4 `--secrets` flag):
 ```
@@ -107,9 +107,9 @@ _Fill in actual URIs in `deploy-outputs.json` after creation._
 |---|---|
 | Command | `az storage account create --name truepathstorage --resource-group Gitlab_TRUE_Path_rg --sku Standard_LRS --location eastus` |
 | Expected | JSON with `id` and `primaryEndpoints.blob` |
-| Status | PENDING |
-| Actual `id` | _fill in_ |
-| Actual `primaryEndpoints.blob` | _fill in_ |
+| Status | DONE |
+| Actual `id` | `/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.Storage/storageAccounts/truepathstorage` |
+| Actual `primaryEndpoints.blob` | `https://truepathstorage.blob.core.windows.net/` |
 
 ---
 
@@ -117,10 +117,10 @@ _Fill in actual URIs in `deploy-outputs.json` after creation._
 
 | Field | Value |
 |---|---|
-| Command | `az storage container create --name rag-data --account-name truepathstorage --auth-mode login` |
+| Command | `az storage container create --name rag-data --account-name truepathstorage --auth-mode key` |
 | Expected | `{"created": true}` |
-| Status | PENDING |
-| Actual output | _fill in_ |
+| Status | DONE |
+| Actual output | Container `rag-data` created (used `--auth-mode key` — see L14) |
 
 ---
 
@@ -130,11 +130,11 @@ _Fill in actual URIs in `deploy-outputs.json` after creation._
 |---|---|
 | Command | `az identity create --name truepath-staging-id --resource-group Gitlab_TRUE_Path_rg` |
 | Expected | JSON with `id`, `principalId`, `clientId` |
-| Status | PENDING |
-| Actual `id` (resource ID) | _fill in_ |
-| Actual `principalId` | _fill in_ |
-| Actual `clientId` | _fill in_ |
-| Note | Script waits 20s before role assignments for AAD propagation |
+| Status | DONE |
+| Actual `id` (resource ID) | `/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourcegroups/Gitlab_TRUE_Path_rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/truepath-staging-id` |
+| Actual `principalId` | `21948419-41cf-4270-bd87-41d8f79a8002` |
+| Actual `clientId` | `b842b0ab-1185-4403-98cf-6b1df592accf` |
+| Note | Script waited 30s (new identity) before role assignments |
 
 ---
 
@@ -142,9 +142,9 @@ _Fill in actual URIs in `deploy-outputs.json` after creation._
 
 | Role | Scope | Status | Actual assignment ID |
 |---|---|---|---|
-| `AcrPull` | ACR `truepathacr` | PENDING | _fill in_ |
-| `Key Vault Secrets User` | Key Vault `truepath-kv` | PENDING | _fill in_ |
-| `Storage Blob Data Contributor` | Storage `truepathstorage` | PENDING | _fill in_ |
+| `AcrPull` | ACR `truepathacr` | DONE | assigned to principal `21948419-41cf-4270-bd87-41d8f79a8002` |
+| `Key Vault Secrets User` | Key Vault `truepath-kv-stg` | DONE | access policy (not RBAC role) — get + list |
+| `Storage Blob Data Contributor` | Storage `truepathstorage` | DONE | assigned to principal `21948419-41cf-4270-bd87-41d8f79a8002` |
 
 Verify all three:
 ```powershell
@@ -217,6 +217,38 @@ The script was passing `id` to `--logs-workspace-id`, but Container Apps require
 
 ---
 
+### L12: Key Vault RBAC — deployer lacks `Microsoft.Authorization/roleAssignments/write`
+**What happened**: `az role assignment create` for "Key Vault Secrets Officer" returned `AuthorizationFailed`. The user `aroy@careerpathservices.org` has **Contributor** access on the subscription. Contributor can create resources but cannot create role assignments — only **Owner** or **User Access Administrator** can do that. This is a subscription-level permission constraint, not a bug in the script.
+
+**Error signature**:
+```
+The client '...' does not have authorization to perform action
+'Microsoft.Authorization/roleAssignments/write' over scope
+'.../providers/Microsoft.KeyVault/vaults/truepath-kv/...'
+```
+
+**Root cause**: All role assignment steps (KV, ACR, Storage) require `roleAssignments/write`. The deployer has Contributor, not Owner.
+
+**Fix applied — Key Vault** (complete, no admin needed):
+Switched Key Vault from RBAC authorization mode to **access policy mode** (`--enable-rbac-authorization false`). Access policies use a separate API path that only requires Key Vault Contributor, not `roleAssignments/write`.
+- Script now creates/updates KV with `--enable-rbac-authorization false`
+- Deployer access granted via `az keyvault set-policy --object-id <OID> --secret-permissions get set list delete`
+- Managed identity access granted via `az keyvault set-policy --object-id <MI-OID> --secret-permissions get list` (replaces "Key Vault Secrets User" role assignment)
+
+**Fix required — ACR and Storage** (needs admin, one-time):
+ACR and Storage have no "access policy" equivalent — they use pure RBAC. The managed identity still needs `AcrPull` and `Storage Blob Data Contributor`. Ask Azure admin to grant Owner at the resource group level:
+```bash
+az role assignment create \
+  --assignee aroy@careerpathservices.org \
+  --role Owner \
+  --scope /subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg
+```
+Once done, re-run `deploy-phase2.ps1` — it will skip the already-completed steps and apply the two remaining role assignments.
+
+**Script improvement**: Pre-flight now checks for Owner/UAA at RG scope and prints a clear warning banner at startup if missing, before any steps execute.
+
+---
+
 ### L9: Resource providers not registered on new subscription
 **What happened**: `az acr create` failed with `MissingSubscriptionRegistration` for `Microsoft.ContainerRegistry`. New Azure subscriptions (especially DevOps/trial subscriptions) do not auto-register resource providers — they are registered on first use via the portal, or explicitly via CLI.
 
@@ -280,3 +312,30 @@ Start-Sleep -Seconds 30
 **Immediate workaround used**: `mkdir -p backend && cp .env backend/.env` in Cloud Shell home dir before running the script.
 
 **Future**: When uploading to Cloud Shell, upload `.env` and the script together in the same dir — the script will now find it automatically.
+
+---
+
+### L14: Pre-flight Owner check is overly conservative — role assignments succeeded anyway
+**What happened**: Pre-flight printed a warning that `aroy@careerpathservices.org` lacked Owner/UAA at RG scope. Despite this, `AcrPull` and `Storage Blob Data Contributor` assignments for the managed identity both succeeded at step 2.7.
+
+**Root cause**: The pre-flight check queries `--role Owner --scope <rg>` and `--role "User Access Administrator" --scope <rg>` specifically. The account likely has a broader assignment (e.g., Owner at subscription scope) that grants the needed `roleAssignments/write` permission but isn't found when querying only at RG scope.
+
+**Fix**: The pre-flight warning is harmless — it just means "I couldn't confirm permissions at RG scope." Role assignments succeed if the permission exists at any parent scope. No script change needed.
+
+---
+
+### L13: Key Vault RBAC mode — switching permission model also requires Owner
+**What happened**: `truepath-kv` was created in a previous run in **RBAC authorization mode** (the Azure default since 2023). Step 2.5 tries to switch it to access policy mode (`az keyvault update --enable-rbac-authorization false`), but this internally writes a role assignment and returns `InsufficientPermissions / Microsoft.Authorization/roleAssignments/write` — same blocker as all other role assignment operations. Contributor is not enough.
+
+**Error signature**:
+```
+(InsufficientPermissions) Caller is not allowed to change permission model.
+action=Microsoft.Authorization/roleAssignments/write
+resource=.../Microsoft.KeyVault/vaults/truepath-kv
+```
+
+**Fix applied**: Renamed `$KV_NAME` from `truepath-kv` to `truepath-kv-stg` in `deploy-phase2.ps1`. The new name doesn't exist, so the script creates it fresh with `--enable-rbac-authorization false` (access policy mode) from the start — no permission-model switch needed.
+
+**Also updated**: `scripts/deploy-outputs.json` placeholder URIs updated to `truepath-kv-stg`.
+
+**Note**: The abandoned `truepath-kv` vault (RBAC mode, no secrets stored) remains in the resource group. It is harmless — nothing uses it. An admin can delete and purge it later if desired.

@@ -96,7 +96,7 @@ Supporting resources (same resource group):
 
 ## Phase 2 — Azure Infrastructure Setup
 
-> **Status: PENDING** — [Verification & Learnings log](deploy-logs/phase2-verification.md)
+> **Status: COMPLETE** — [Verification & Learnings log](deploy-logs/phase2-verification.md)
 >
 > **Automation script**: `scripts/deploy-phase2.ps1` — run this instead of manual commands.
 > It reads secrets from `backend/.env`, creates all resources, and writes all output IDs/URIs
@@ -165,30 +165,37 @@ docker --version
 
 ## Phase 3 — Build & Push Docker Images
 
-> **Prerequisites**: Docker Desktop installed and running (not present on this machine — install alongside az CLI).
-> Run from repo root on local machine.
+> **No local Docker required.** Uses `az acr build` (ACR Tasks) — source is uploaded from Cloud Shell
+> and built inside Azure. Run via `scripts/deploy-phase3.ps1`.
+>
+> **Automation script**: `scripts/deploy-phase3.ps1` — reads ACR name from `scripts/deploy-outputs.json`.
 
-```bash
-az acr login --name truepathacr
+### Prerequisites
 
-# Build
-docker build -t truepathacr.azurecr.io/truepath-frontend:staging ./frontend
-docker build -t truepathacr.azurecr.io/truepath-backend:staging  ./backend
-docker build -t truepathacr.azurecr.io/truepath-python:staging   ./services
-
-# Push
-docker push truepathacr.azurecr.io/truepath-frontend:staging
-docker push truepathacr.azurecr.io/truepath-backend:staging
-docker push truepathacr.azurecr.io/truepath-python:staging
+```powershell
+# In Azure Cloud Shell — clone the repo so build contexts are available
+git clone https://github.com/arundhati-TRUEPath/truepath.git
+cd truepath
 ```
 
+### Run the script
+
+```powershell
+pwsh scripts/deploy-phase3.ps1
+# or, if already inside the repo:
+pwsh scripts/deploy-phase3.ps1
+```
+
+The script builds and pushes all three images using `az acr build`:
+- `truepath-frontend:staging` from `./frontend`
+- `truepath-backend:staging` from `./backend`
+- `truepath-python:staging` from `./services`
+
 - [ ] All 3 images build without errors
-- [ ] All 3 images push to ACR successfully
-- [ ] `az acr repository list --name truepathacr` shows all 3 repos
+- [ ] All 3 images appear in ACR (`az acr repository list --name truepathacr`)
 
 ### Local verification (non-negotiable)
-- [ ] Restart local dev server (`./start.ps1`) — confirm Docker builds didn't alter local files
-- [ ] Complete intake → skills → pathways → plan flow end-to-end
+- [ ] Confirm local dev server still works (`./start.ps1`) — `az acr build` never touches local files
 
 ---
 

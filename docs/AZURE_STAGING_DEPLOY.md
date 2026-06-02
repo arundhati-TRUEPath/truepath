@@ -203,6 +203,9 @@ The script builds and pushes all three images using `az acr build`:
 
 ## Phase 4 — Deploy Container Apps
 
+> **Status: COMPLETE** — all 3 Container Apps deployed and running.
+> Frontend URL: `https://truepath-frontend.ashybush-4cbf3768.eastus.azurecontainerapps.io`
+>
 > **Automation script**: `scripts/deploy-phase4.ps1` — reads all resource IDs from `scripts/deploy-outputs.json`.
 > Idempotent: first run creates with full config; subsequent runs update the image only.
 >
@@ -276,6 +279,8 @@ az containerapp create \
 ---
 
 ## Phase 5 — RAG Scheduled Job
+
+> **Automation script**: `scripts/deploy-phase5.ps1` — run via `./run.ps1 -Phase 5`
 
 ### 5.1 — Upload RAG source files to blob storage
 ```bash

@@ -174,14 +174,19 @@ docker --version
 
 ```powershell
 # Cloud Shell — upload deploy-phase3.ps1 + deploy-outputs.json, then:
-./deploy-phase3.ps1 -GitHubPat <your-pat>
+./deploy-phase3.ps1
 ```
 
 The script resolves the build source automatically:
-- If running from inside the cloned repo → uses local paths (no PAT needed)
-- Otherwise → `az acr build` pulls each service directly from GitHub using the PAT (no local clone)
+- If running from inside the cloned repo → uses local paths, no Key Vault lookup
+- Otherwise → reads `GITHUB-PAT` from Key Vault at runtime, then `az acr build` pulls directly from GitHub
 
-To create a PAT: GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → `repo` read scope.
+**One-time GitHub PAT setup** (before first Phase 3 run):
+1. Create a PAT: GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → `repo` read scope
+2. Add `GITHUB_PAT=<token>` to `backend/.env`
+3. Re-run `deploy-phase2.ps1` — it stores the PAT in Key Vault as `GITHUB-PAT`
+
+The PAT never appears on the command line, in shell history, or in script output.
 
 The script builds and pushes all three images using `az acr build`:
 - `truepath-frontend:staging` from `./frontend`

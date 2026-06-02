@@ -71,9 +71,17 @@ function Read-EnvValue($file, $key) {
     $line = Get-Content $file | Where-Object { $_ -match "^$key=" } | Select-Object -First 1
     if (-not $line) { Die "Key '$key' not found in $file" }
     $value = ($line -split '=', 2)[1].Trim()
-    # Strip surrounding quotes (single or double) — common in .env files
     if ($value -match '^"(.*)"$' -or $value -match "^'(.*)'$") { $value = $Matches[1] }
     if (-not $value) { Die "Key '$key' has an empty value in $file — fill it in before running." }
+    return $value
+}
+
+function Read-EnvValueOptional($file, $key) {
+    $line = Get-Content $file | Where-Object { $_ -match "^$key=" } | Select-Object -First 1
+    if (-not $line) { return $null }
+    $value = ($line -split '=', 2)[1].Trim()
+    if ($value -match '^"(.*)"$' -or $value -match "^'(.*)'$") { $value = $Matches[1] }
+    if (-not $value) { return $null }
     return $value
 }
 
@@ -131,6 +139,18 @@ $secrets = @{
     "OPENAI-API-KEY"       = Read-EnvValue $ENV_FILE "OPENAI_API_KEY"
     "SUPABASE-URL"         = Read-EnvValue $ENV_FILE "SUPABASE_URL"
     "SUPABASE-SERVICE-KEY" = Read-EnvValue $ENV_FILE "SUPABASE_SERVICE_KEY"
+}
+
+# GITHUB-PAT is optional — needed by Phase 3 to pull source from GitHub.
+# Add GITHUB_PAT=<token> to .env to have it stored securely in Key Vault.
+# Token requires repo read scope. Create at:
+#   GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
+$githubPatValue = Read-EnvValueOptional $ENV_FILE "GITHUB_PAT"
+if ($githubPatValue) {
+    $secrets["GITHUB-PAT"] = $githubPatValue
+    Log "GITHUB_PAT found — will store in Key Vault for Phase 3."
+} else {
+    Log "GITHUB_PAT not in .env — skipping. Phase 3 requires it; add it and re-run this script."
 }
 Log "Secrets loaded: $($secrets.Keys -join ', ')"
 

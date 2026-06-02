@@ -4,36 +4,37 @@
 
 .DESCRIPTION
   Uses `az acr build` — no local Docker daemon required.
-  Reads ACR name from deploy-outputs.json (written by deploy-phase2.ps1).
+  Reads ACR name and Key Vault name from deploy-outputs.json (written by deploy-phase2.ps1).
   Fully idempotent — safe to re-run; each `az acr build` overwrites the :staging tag.
 
   Build source resolution order:
     1. $PSScriptRoot/.. if it contains frontend/ backend/ services/ (running from inside the repo)
     2. -RepoRoot param if provided
-    3. GitHub URL (requires -GitHubPat with a Personal Access Token that has repo read scope)
+    3. GitHub URL — PAT is read from Key Vault (GITHUB-PAT secret), never passed on the CLI.
        az acr build pulls directly from GitHub — no local clone needed.
 
-  To create a GitHub PAT:
-    GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
-    Scopes required: repo (read)
+  GitHub PAT setup (one-time):
+    1. Create a PAT at GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
+       Scopes required: repo (read)
+    2. Add GITHUB_PAT=<token> to backend/.env
+    3. Re-run deploy-phase2.ps1 — it stores the PAT in Key Vault as GITHUB-PAT
 
 .PREREQUISITES
   - Azure CLI installed and logged in (auto in Cloud Shell)
   - deploy-phase2.ps1 must have run successfully (deploy-outputs.json next to this script)
-  - GitHub PAT required only when running outside the repo (e.g. Cloud Shell standalone)
+  - GITHUB-PAT stored in Key Vault (via deploy-phase2.ps1) when running outside the repo
 
 .USAGE
   # Cloud Shell — upload this script and deploy-outputs.json, then:
-  ./deploy-phase3.ps1 -GitHubPat <your-pat>
+  ./deploy-phase3.ps1
 
-  # From inside the repo (no PAT needed):
+  # From inside the repo (Key Vault lookup skipped — local paths used):
   pwsh scripts/deploy-phase3.ps1
 #>
 
 param(
-    [string]$RepoRoot  = "",
-    [string]$RepoUrl   = "https://github.com/arundhati-TRUEPath/truepath.git",
-    [string]$GitHubPat = $env:GITHUB_PAT   # fallback: set GITHUB_PAT env var
+    [string]$RepoRoot = "",
+    [string]$RepoUrl  = "https://github.com/arundhati-TRUEPath/truepath.git"
 )
 
 Set-StrictMode -Version Latest
@@ -82,17 +83,21 @@ $out = Get-Content $OUTPUTS_FILE | ConvertFrom-Json
 $ACR_NAME   = $out.acr_name
 $ACR_SERVER = $out.acr_login_server
 $SUB_ID     = $out.subscription_id
+$KV_NAME    = $out.kv_name
 
 if (-not $ACR_NAME)   { Die "acr_name missing in deploy-outputs.json — re-run deploy-phase2.ps1" }
 if (-not $ACR_SERVER) { Die "acr_login_server missing in deploy-outputs.json — re-run deploy-phase2.ps1" }
+if (-not $KV_NAME)    { Die "kv_name missing in deploy-outputs.json — re-run deploy-phase2.ps1" }
 
 az account set --subscription $SUB_ID
 if ($LASTEXITCODE -ne 0) { Die "Failed to set subscription $SUB_ID." }
 
 # ── Resolve build source ──────────────────────────────────────────────────────
-# Prefer local paths (no PAT needed). Fall back to GitHub URL if running standalone.
-$useLocal = $false
+# Prefer local paths (no Key Vault lookup needed).
+# Fall back to GitHub URL — PAT fetched from Key Vault, never passed on CLI.
+$useLocal  = $false
 $localRoot = ""
+$GitHubPat = $null
 
 if ($RepoRoot -ne "" -and (Test-RepoRoot $RepoRoot)) {
     $localRoot = $RepoRoot
@@ -103,16 +108,18 @@ if ($RepoRoot -ne "" -and (Test-RepoRoot $RepoRoot)) {
     $useLocal  = $true
     Log "Running from inside repo: $localRoot"
 } else {
-    # Cloud Shell standalone — build directly from GitHub URL (no clone)
-    if (-not $GitHubPat) {
+    # Cloud Shell standalone — read PAT from Key Vault, build via GitHub URL
+    Log "No local repo found — fetching GITHUB-PAT from Key Vault ($KV_NAME)..."
+    $GitHubPat = az keyvault secret show --vault-name $KV_NAME --name "GITHUB-PAT" --query "value" -o tsv 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $GitHubPat) {
         Die @"
-No local repo found and -GitHubPat was not provided.
-Supply a GitHub Personal Access Token (repo read scope):
-  ./deploy-phase3.ps1 -GitHubPat <your-pat>
-Or set the GITHUB_PAT environment variable before running.
-Create a PAT at: GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
+GITHUB-PAT secret not found in Key Vault '$KV_NAME'.
+Store it once by adding GITHUB_PAT=<token> to backend/.env and re-running deploy-phase2.ps1.
+Token requires 'repo' read scope — create at:
+  GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
 "@
     }
+    Log "GitHub PAT retrieved from Key Vault."
     Log "No local repo — will build directly from GitHub via az acr build."
 }
 

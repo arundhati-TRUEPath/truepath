@@ -10,8 +10,9 @@
   Build source resolution order:
     1. $PSScriptRoot/.. if it contains frontend/ backend/ services/ (running from inside the repo)
     2. -RepoRoot param if provided
-    3. GitHub URL — PAT is read from Key Vault (GITHUB-PAT secret), never passed on the CLI.
-       az acr build pulls directly from GitHub — no local clone needed.
+    3. Clone/pull into ~/truepath-src using PAT from Key Vault (GITHUB-PAT secret).
+       PAT is used only for the git operation, immediately wiped from remote config and memory.
+       az acr build then uses the local clone — PAT never appears in any az CLI argument.
 
   GitHub PAT setup (one-time):
     1. Create a PAT at GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
@@ -108,7 +109,7 @@ if ($RepoRoot -ne "" -and (Test-RepoRoot $RepoRoot)) {
     $useLocal  = $true
     Log "Running from inside repo: $localRoot"
 } else {
-    # Cloud Shell standalone — read PAT from Key Vault, build via GitHub URL
+    # Cloud Shell standalone — clone/pull using PAT from Key Vault
     Log "No local repo found — fetching GITHUB-PAT from Key Vault ($KV_NAME)..."
     $GitHubPat = az keyvault secret show --vault-name $KV_NAME --name "GITHUB-PAT" --query "value" -o tsv 2>$null
     if ($LASTEXITCODE -ne 0 -or -not $GitHubPat) {
@@ -120,7 +121,33 @@ Token requires 'repo' read scope — create at:
 "@
     }
     Log "GitHub PAT retrieved from Key Vault."
-    Log "No local repo — will build directly from GitHub via az acr build."
+
+    $cloneTarget = Join-Path $HOME "truepath-src"
+    $authUrl  = "https://oauth2:$GitHubPat@github.com/arundhati-TRUEPath/truepath.git"
+    $cleanUrl = $RepoUrl
+
+    if (Test-Path $cloneTarget) {
+        Log "Repo exists at $cloneTarget — pulling latest..."
+        git -C $cloneTarget remote set-url origin $authUrl
+        git -C $cloneTarget pull
+        if ($LASTEXITCODE -ne 0) { Die "git pull failed." }
+    } else {
+        Log "Cloning into $cloneTarget..."
+        git clone $authUrl $cloneTarget
+        if ($LASTEXITCODE -ne 0) { Die "git clone failed." }
+    }
+
+    # Wipe PAT from remote config and memory immediately — not needed after this point
+    git -C $cloneTarget remote set-url origin $cleanUrl
+    $GitHubPat = $null
+    $authUrl   = $null
+
+    if (-not (Test-RepoRoot $cloneTarget)) {
+        Die "Cloned repo at $cloneTarget is missing expected directories."
+    }
+    $localRoot = $cloneTarget
+    $useLocal  = $true
+    Log "Repo ready at $localRoot"
 }
 
 # Build service definitions: local path or GitHub sub-tree URL
@@ -130,29 +157,21 @@ $services = @(
     [ordered]@{ Name = "truepath-python";   LocalContext = "services"; GitSubdir = "services" }
 )
 
-# ── Verify Dockerfiles (local mode only) ─────────────────────────────────────
-if ($useLocal) {
-    foreach ($svc in $services) {
-        $ctx = Join-Path $localRoot $svc.LocalContext
-        if (-not (Test-Path (Join-Path $ctx "Dockerfile"))) {
-            Die "Dockerfile not found at $ctx/Dockerfile"
-        }
+# ── Verify Dockerfiles ────────────────────────────────────────────────────────
+foreach ($svc in $services) {
+    $ctx = Join-Path $localRoot $svc.LocalContext
+    if (-not (Test-Path (Join-Path $ctx "Dockerfile"))) {
+        Die "Dockerfile not found at $ctx/Dockerfile"
     }
-    Log "All Dockerfiles verified."
 }
+Log "All Dockerfiles verified."
 
 # ── Build + push via ACR Tasks ────────────────────────────────────────────────
 foreach ($svc in $services) {
-    $image = "$($svc.Name):staging"
-    Log "Building $image ..."
-    if ($useLocal) {
-        $context = Join-Path $localRoot $svc.LocalContext
-        az acr build --registry $ACR_NAME --image $image $context
-    } else {
-        # az acr build fetches directly from GitHub — no local clone needed
-        $gitContext = "$RepoUrl#main:$($svc.GitSubdir)"
-        az acr build --registry $ACR_NAME --image $image --git-access-token $GitHubPat $gitContext
-    }
+    $image   = "$($svc.Name):staging"
+    $context = Join-Path $localRoot $svc.LocalContext
+    Log "Building $image from $context ..."
+    az acr build --registry $ACR_NAME --image $image $context
     if ($LASTEXITCODE -ne 0) { Die "Build failed for $image. See ACR build log above." }
     Log "$image pushed to $ACR_SERVER."
 }

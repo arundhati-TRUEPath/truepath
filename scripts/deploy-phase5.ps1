@@ -18,6 +18,10 @@
     pwsh scripts/deploy-phase5.ps1
 #>
 
+param(
+    [string]$OutputsFile = ""
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -36,11 +40,15 @@ function Test-RepoRoot($path) {
 $SCRIPT_DIR = $PSScriptRoot
 if (-not $SCRIPT_DIR) { $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path }
 
-$OUTPUTS_FILE = @(
-    (Join-Path $SCRIPT_DIR "deploy-outputs.json"),
-    (Join-Path $SCRIPT_DIR "../deploy-outputs.json"),
-    (Join-Path (Get-Location) "deploy-outputs.json")
-) | Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($OutputsFile -and (Test-Path $OutputsFile)) {
+    $OUTPUTS_FILE = $OutputsFile
+} else {
+    $OUTPUTS_FILE = @(
+        (Join-Path $SCRIPT_DIR "deploy-outputs.json"),
+        (Join-Path $SCRIPT_DIR "../deploy-outputs.json"),
+        (Join-Path (Get-Location) "deploy-outputs.json")
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
 
 if (-not $OUTPUTS_FILE) {
     Die "deploy-outputs.json not found. Run deploy-phase2.ps1 first."

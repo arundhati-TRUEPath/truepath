@@ -98,11 +98,5 @@ if (-not (Test-Path $phaseScript)) {
 }
 
 Log "Running Phase $Phase from repo..."
-Push-Location $HERE
-try {
-    & pwsh $phaseScript
-    $exitCode = $LASTEXITCODE
-} finally {
-    Pop-Location
-}
-exit $exitCode
+& pwsh $phaseScript -OutputsFile $outputsFile
+exit $LASTEXITCODE

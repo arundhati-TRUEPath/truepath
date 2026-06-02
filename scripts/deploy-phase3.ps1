@@ -4,31 +4,36 @@
 
 .DESCRIPTION
   Uses `az acr build` — no local Docker daemon required.
-  Source context is uploaded to ACR, which builds the images inside Azure.
   Reads ACR name from deploy-outputs.json (written by deploy-phase2.ps1).
   Fully idempotent — safe to re-run; each `az acr build` overwrites the :staging tag.
 
-  Repo resolution order:
-    1. -RepoRoot param if provided and exists
-    2. $PSScriptRoot/.. if it contains frontend/ backend/ services/ (script is inside the repo)
-    3. Auto-clone from $RepoUrl into ~/truepath-src (Cloud Shell case)
-       If the clone target already exists, `git pull` to get latest instead.
+  Build source resolution order:
+    1. $PSScriptRoot/.. if it contains frontend/ backend/ services/ (running from inside the repo)
+    2. -RepoRoot param if provided
+    3. GitHub URL (requires -GitHubPat with a Personal Access Token that has repo read scope)
+       az acr build pulls directly from GitHub — no local clone needed.
+
+  To create a GitHub PAT:
+    GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+    Scopes required: repo (read)
 
 .PREREQUISITES
   - Azure CLI installed and logged in (auto in Cloud Shell)
   - deploy-phase2.ps1 must have run successfully (deploy-outputs.json next to this script)
+  - GitHub PAT required only when running outside the repo (e.g. Cloud Shell standalone)
 
 .USAGE
   # Cloud Shell — upload this script and deploy-outputs.json, then:
-  ./deploy-phase3.ps1
+  ./deploy-phase3.ps1 -GitHubPat <your-pat>
 
-  # From inside the repo:
+  # From inside the repo (no PAT needed):
   pwsh scripts/deploy-phase3.ps1
 #>
 
 param(
-    [string]$RepoRoot = "",
-    [string]$RepoUrl  = "https://github.com/arundhati-TRUEPath/truepath.git"
+    [string]$RepoRoot  = "",
+    [string]$RepoUrl   = "https://github.com/arundhati-TRUEPath/truepath.git",
+    [string]$GitHubPat = $env:GITHUB_PAT   # fallback: set GITHUB_PAT env var
 )
 
 Set-StrictMode -Version Latest
@@ -39,7 +44,8 @@ function Log($msg) { Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $msg" }
 function Die($msg) { Write-Error "[FAIL] $msg"; exit 1 }
 
 function Test-RepoRoot($path) {
-    return (Test-Path (Join-Path $path "frontend")) -and
+    return (Test-Path $path) -and
+           (Test-Path (Join-Path $path "frontend")) -and
            (Test-Path (Join-Path $path "backend"))  -and
            (Test-Path (Join-Path $path "services"))
 }
@@ -71,10 +77,6 @@ if (-not $accountRaw) { Die "Not logged in. Run: az login" }
 $account = $accountRaw | ConvertFrom-Json
 Log "Logged in as: $($account.user.name) — $($account.name)"
 
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Die "git not found. Azure Cloud Shell includes git — ensure you are running in Cloud Shell."
-}
-
 # ── Read outputs ──────────────────────────────────────────────────────────────
 $out = Get-Content $OUTPUTS_FILE | ConvertFrom-Json
 $ACR_NAME   = $out.acr_name
@@ -87,54 +89,63 @@ if (-not $ACR_SERVER) { Die "acr_login_server missing in deploy-outputs.json —
 az account set --subscription $SUB_ID
 if ($LASTEXITCODE -ne 0) { Die "Failed to set subscription $SUB_ID." }
 
-# ── Resolve repo root ─────────────────────────────────────────────────────────
-if ($RepoRoot -ne "" -and (Test-Path $RepoRoot) -and (Test-RepoRoot $RepoRoot)) {
-    $REPO_ROOT = $RepoRoot
-    Log "Using provided repo root: $REPO_ROOT"
+# ── Resolve build source ──────────────────────────────────────────────────────
+# Prefer local paths (no PAT needed). Fall back to GitHub URL if running standalone.
+$useLocal = $false
+$localRoot = ""
+
+if ($RepoRoot -ne "" -and (Test-RepoRoot $RepoRoot)) {
+    $localRoot = $RepoRoot
+    $useLocal  = $true
+    Log "Using provided repo root: $localRoot"
 } elseif (Test-RepoRoot (Join-Path $SCRIPT_DIR "..")) {
-    $REPO_ROOT = (Resolve-Path (Join-Path $SCRIPT_DIR "..")).Path
-    Log "Running from inside repo: $REPO_ROOT"
+    $localRoot = (Resolve-Path (Join-Path $SCRIPT_DIR "..")).Path
+    $useLocal  = $true
+    Log "Running from inside repo: $localRoot"
 } else {
-    # Cloud Shell / standalone: clone or update the repo
-    $cloneTarget = Join-Path $HOME "truepath-src"
-    if (Test-Path $cloneTarget) {
-        Log "Repo already cloned at $cloneTarget — pulling latest..."
-        git -C $cloneTarget pull
-        if ($LASTEXITCODE -ne 0) { Die "git pull failed in $cloneTarget" }
-    } else {
-        Log "Cloning $RepoUrl into $cloneTarget..."
-        git clone $RepoUrl $cloneTarget
-        if ($LASTEXITCODE -ne 0) { Die "git clone failed. Check repo URL and network access." }
+    # Cloud Shell standalone — build directly from GitHub URL (no clone)
+    if (-not $GitHubPat) {
+        Die @"
+No local repo found and -GitHubPat was not provided.
+Supply a GitHub Personal Access Token (repo read scope):
+  ./deploy-phase3.ps1 -GitHubPat <your-pat>
+Or set the GITHUB_PAT environment variable before running.
+Create a PAT at: GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
+"@
     }
-    if (-not (Test-RepoRoot $cloneTarget)) {
-        Die "Cloned repo at $cloneTarget is missing expected directories (frontend/, backend/, services/). Check the repo URL."
-    }
-    $REPO_ROOT = $cloneTarget
-    Log "Repo root: $REPO_ROOT"
+    Log "No local repo — will build directly from GitHub via az acr build."
 }
 
-# ── Verify Dockerfiles ────────────────────────────────────────────────────────
+# Build service definitions: local path or GitHub sub-tree URL
 $services = @(
-    [ordered]@{ Name = "truepath-frontend"; Context = (Join-Path $REPO_ROOT "frontend") },
-    [ordered]@{ Name = "truepath-backend";  Context = (Join-Path $REPO_ROOT "backend")  },
-    [ordered]@{ Name = "truepath-python";   Context = (Join-Path $REPO_ROOT "services") }
+    [ordered]@{ Name = "truepath-frontend"; LocalContext = "frontend"; GitSubdir = "frontend" },
+    [ordered]@{ Name = "truepath-backend";  LocalContext = "backend";  GitSubdir = "backend"  },
+    [ordered]@{ Name = "truepath-python";   LocalContext = "services"; GitSubdir = "services" }
 )
 
-foreach ($svc in $services) {
-    if (-not (Test-Path (Join-Path $svc.Context "Dockerfile"))) {
-        Die "Dockerfile not found at $($svc.Context)/Dockerfile"
+# ── Verify Dockerfiles (local mode only) ─────────────────────────────────────
+if ($useLocal) {
+    foreach ($svc in $services) {
+        $ctx = Join-Path $localRoot $svc.LocalContext
+        if (-not (Test-Path (Join-Path $ctx "Dockerfile"))) {
+            Die "Dockerfile not found at $ctx/Dockerfile"
+        }
     }
+    Log "All Dockerfiles verified."
 }
-Log "All Dockerfiles verified."
 
 # ── Build + push via ACR Tasks ────────────────────────────────────────────────
 foreach ($svc in $services) {
     $image = "$($svc.Name):staging"
     Log "Building $image ..."
-    az acr build `
-        --registry $ACR_NAME `
-        --image $image `
-        $svc.Context
+    if ($useLocal) {
+        $context = Join-Path $localRoot $svc.LocalContext
+        az acr build --registry $ACR_NAME --image $image $context
+    } else {
+        # az acr build fetches directly from GitHub — no local clone needed
+        $gitContext = "$RepoUrl#main:$($svc.GitSubdir)"
+        az acr build --registry $ACR_NAME --image $image --git-access-token $GitHubPat $gitContext
+    }
     if ($LASTEXITCODE -ne 0) { Die "Build failed for $image. See ACR build log above." }
     Log "$image pushed to $ACR_SERVER."
 }

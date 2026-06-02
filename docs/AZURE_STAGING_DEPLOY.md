@@ -174,13 +174,14 @@ docker --version
 
 ```powershell
 # Cloud Shell — upload deploy-phase3.ps1 + deploy-outputs.json, then:
-./deploy-phase3.ps1
+./deploy-phase3.ps1 -GitHubPat <your-pat>
 ```
 
-The script resolves the repo automatically:
-- If running from inside the cloned repo → uses it in place
-- Otherwise → clones `https://github.com/arundhati-TRUEPath/truepath.git` into `~/truepath-src`
-  (or `git pull` if the clone already exists)
+The script resolves the build source automatically:
+- If running from inside the cloned repo → uses local paths (no PAT needed)
+- Otherwise → `az acr build` pulls each service directly from GitHub using the PAT (no local clone)
+
+To create a PAT: GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → `repo` read scope.
 
 The script builds and pushes all three images using `az acr build`:
 - `truepath-frontend:staging` from `./frontend`

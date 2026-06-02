@@ -170,21 +170,17 @@ docker --version
 >
 > **Automation script**: `scripts/deploy-phase3.ps1` — reads ACR name from `scripts/deploy-outputs.json`.
 
-### Prerequisites
-
-```powershell
-# In Azure Cloud Shell — clone the repo so build contexts are available
-git clone https://github.com/arundhati-TRUEPath/truepath.git
-cd truepath
-```
-
 ### Run the script
 
 ```powershell
-pwsh scripts/deploy-phase3.ps1
-# or, if already inside the repo:
-pwsh scripts/deploy-phase3.ps1
+# Cloud Shell — upload deploy-phase3.ps1 + deploy-outputs.json, then:
+./deploy-phase3.ps1
 ```
+
+The script resolves the repo automatically:
+- If running from inside the cloned repo → uses it in place
+- Otherwise → clones `https://github.com/arundhati-TRUEPath/truepath.git` into `~/truepath-src`
+  (or `git pull` if the clone already exists)
 
 The script builds and pushes all three images using `az acr build`:
 - `truepath-frontend:staging` from `./frontend`

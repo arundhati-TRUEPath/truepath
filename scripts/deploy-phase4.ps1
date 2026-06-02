@@ -59,12 +59,12 @@ $RG         = $out.resource_group
 $ACR_SERVER = $out.acr_login_server
 $ENV_NAME   = $out.env_name
 $KV_NAME    = $out.kv_name
-$MI_ID      = $out.managed_identity.resource_id
-$ENV_DOMAIN = $out.container_apps_env.default_domain
+$MI_ID      = $out.identity_resource_id
+$ENV_DOMAIN = $out.env_default_domain
 
-$KV_OPENAI_URI    = $out.key_vault.secret_uris.'OPENAI-API-KEY'
-$KV_SB_URL_URI    = $out.key_vault.secret_uris.'SUPABASE-URL'
-$KV_SB_KEY_URI    = $out.key_vault.secret_uris.'SUPABASE-SERVICE-KEY'
+$KV_OPENAI_URI    = $out.kv_secret_uris.'OPENAI-API-KEY'
+$KV_SB_URL_URI    = $out.kv_secret_uris.'SUPABASE-URL'
+$KV_SB_KEY_URI    = $out.kv_secret_uris.'SUPABASE-SERVICE-KEY'
 
 foreach ($v in @($SUB_ID,$RG,$ACR_SERVER,$ENV_NAME,$KV_NAME,$MI_ID,$ENV_DOMAIN,$KV_OPENAI_URI,$KV_SB_URL_URI,$KV_SB_KEY_URI)) {
     if (-not $v -or $v -like "<pending*") { Die "deploy-outputs.json has unpopulated values — re-run deploy-phase2.ps1" }

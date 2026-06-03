@@ -130,6 +130,8 @@ if ($LASTEXITCODE -eq 0 -and $jobExistingRaw) {
         --trigger-type      Schedule `
         --cron-expression   "0 6 * * *" `
         --replica-timeout   1800 `
+        --command           "python" `
+        --args              "run_indexer.py" `
         --secrets `
             "openai-key=keyvaultref:$KV_OPENAI_URI,identityref:$MI_ID" `
             "supabase-url=keyvaultref:$KV_SB_URL_URI,identityref:$MI_ID" `

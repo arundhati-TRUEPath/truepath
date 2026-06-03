@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { IntakeAnswer, Question } from '../types/intake';
 import type { Skill } from '../types/skills';
 import type { Pathway, Limitations } from '../types/pathways';
@@ -39,15 +40,24 @@ const initial = {
   planReady: false,
 };
 
-export const useSessionStore = create<SessionState>((set) => ({
-  ...initial,
-  setSessionId: (id) => set({ sessionId: id }),
-  setIntakeAnswers: (answers) => set({ intakeAnswers: answers }),
-  setFollowupQuestions: (questions) => set({ followupQuestions: questions }),
-  setInferredSkills: (skills) => set({ inferredSkills: skills }),
-  setConfirmedSkillIds: (ids) => set({ confirmedSkillIds: ids }),
-  setPathways: (pathways, limitations) => set({ pathways, limitations }),
-  setSelectedPathway: (id) => set({ selectedPathwayId: id }),
-  setPlanReady: (ready) => set({ planReady: ready }),
-  reset: () => set({ ...initial }),
-}));
+export const useSessionStore = create<SessionState>()(
+  persist(
+    (set) => ({
+      ...initial,
+      setSessionId: (id) => set({ sessionId: id }),
+      setIntakeAnswers: (answers) => set({ intakeAnswers: answers }),
+      setFollowupQuestions: (questions) => set({ followupQuestions: questions }),
+      setInferredSkills: (skills) => set({ inferredSkills: skills }),
+      setConfirmedSkillIds: (ids) => set({ confirmedSkillIds: ids }),
+      setPathways: (pathways, limitations) => set({ pathways, limitations }),
+      setSelectedPathway: (id) => set({ selectedPathwayId: id }),
+      setPlanReady: (ready) => set({ planReady: ready }),
+      reset: () => set({ ...initial }),
+    }),
+    {
+      name: 'truepath-session',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ sessionId: state.sessionId }),
+    },
+  ),
+);

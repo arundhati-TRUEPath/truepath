@@ -30,7 +30,8 @@ def _download_from_blob() -> Path:
     container_name = os.environ.get("AZURE_STORAGE_CONTAINER", "rag-data")
     account_url = f"https://{account_name}.blob.core.windows.net"
 
-    credential = DefaultAzureCredential()
+    client_id = os.environ.get("AZURE_CLIENT_ID")
+    credential = DefaultAzureCredential(managed_identity_client_id=client_id)
     service = BlobServiceClient(account_url=account_url, credential=credential)
     container = service.get_container_client(container_name)
 

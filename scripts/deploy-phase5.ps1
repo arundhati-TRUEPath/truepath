@@ -96,8 +96,10 @@ foreach ($v in @($SUB_ID,$RG,$ACR_SERVER,$ENV_NAME,$MI_ID,$SA_NAME,$BLOB_CTR,$KV
 az account set --subscription $SUB_ID
 if ($LASTEXITCODE -ne 0) { Die "Failed to set subscription." }
 
-$JOB_NAME = "truepath-rag-job"
-$IMAGE    = "$ACR_SERVER/truepath-python:staging"
+$JOB_NAME  = "truepath-rag-job"
+$IMAGE     = "$ACR_SERVER/truepath-python:staging"
+$MI_CLIENT_ID = (az identity show --ids $MI_ID --query "clientId" -o tsv)
+if ($LASTEXITCODE -ne 0) { Die "Failed to resolve managed identity client ID." }
 
 # ── 5.1 Upload RAG files to Blob Storage ─────────────────────────────────────
 Log "Step 5.1 — Uploading RAG files from $RAG_DATA_DIR to $SA_NAME/$BLOB_CTR..."
@@ -142,10 +144,22 @@ if ($LASTEXITCODE -eq 0 -and $jobExistingRaw) {
             "SUPABASE_SERVICE_KEY=secretref:supabase-key" `
             "STORAGE_MODE=azure" `
             "AZURE_STORAGE_ACCOUNT_NAME=$SA_NAME" `
-            "AZURE_STORAGE_CONTAINER=$BLOB_CTR"
+            "AZURE_STORAGE_CONTAINER=$BLOB_CTR" `
+            "AZURE_CLIENT_ID=$MI_CLIENT_ID"
     if ($LASTEXITCODE -ne 0) { Die "Failed to create $JOB_NAME." }
     Log "$JOB_NAME created."
 }
+
+# ── 5.2a Update existing job command + env (idempotent) ──────────────────────
+Log "Step 5.2a — Updating $JOB_NAME command and env vars..."
+az containerapp job update `
+    --name          $JOB_NAME `
+    --resource-group $RG `
+    --command       "python" `
+    --args          "run_indexer.py" `
+    --set-env-vars  "AZURE_CLIENT_ID=$MI_CLIENT_ID"
+if ($LASTEXITCODE -ne 0) { Die "Failed to update $JOB_NAME." }
+Log "$JOB_NAME updated."
 
 # ── 5.3 Trigger manual run + wait for completion ──────────────────────────────
 Log "Step 5.3 — Triggering manual run of $JOB_NAME..."

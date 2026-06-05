@@ -1,6 +1,6 @@
-<#
+﻿<#
 .SYNOPSIS
-  Phase 4: Deploy Container Apps — python → backend → frontend.
+  Phase 4: Deploy Container Apps -- python → backend → frontend.
 
 .DESCRIPTION
   Deploys all three services to the Container Apps Environment.
@@ -13,7 +13,7 @@
   - deploy-phase3.ps1 completed (images present in ACR)
 
 .USAGE
-  # Cloud Shell — upload this script and deploy-outputs.json, then:
+  # Cloud Shell -- upload this script and deploy-outputs.json, then:
   ./deploy-phase4.ps1
 
   # From inside the repo:
@@ -57,7 +57,7 @@ if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
 $accountRaw = az account show 2>$null
 if (-not $accountRaw) { Die "Not logged in. Run: az login" }
 $account = $accountRaw | ConvertFrom-Json
-Log "Logged in as: $($account.user.name) — $($account.name)"
+Log "Logged in as: $($account.user.name) -- $($account.name)"
 
 # ── Read outputs ──────────────────────────────────────────────────────────────
 $out = Get-Content $OUTPUTS_FILE | ConvertFrom-Json
@@ -74,7 +74,7 @@ $KV_OPENAI_URI = $out.kv_secret_uris.'OPENAI-API-KEY'
 $KV_DB_URL_URI = $out.kv_secret_uris.'DATABASE-URL'
 
 foreach ($v in @($SUB_ID,$RG,$ACR_SERVER,$ENV_NAME,$KV_NAME,$MI_ID,$ENV_DOMAIN,$KV_OPENAI_URI,$KV_DB_URL_URI)) {
-    if (-not $v -or $v -like "<pending*") { Die "deploy-outputs.json has unpopulated values — re-run deploy-phase2.ps1" }
+    if (-not $v -or $v -like "<pending*") { Die "deploy-outputs.json has unpopulated values -- re-run deploy-phase2.ps1" }
 }
 
 az account set --subscription $SUB_ID
@@ -108,7 +108,7 @@ function Deploy-ContainerApp {
 
     $existingRaw = az containerapp show --name $Name --resource-group $RG 2>$null
     if ($LASTEXITCODE -eq 0 -and $existingRaw) {
-        Log "$Name already exists — updating image to $Image..."
+        Log "$Name already exists -- updating image to $Image..."
         az containerapp update `
             --name $Name `
             --resource-group $RG `
@@ -141,13 +141,13 @@ function Deploy-ContainerApp {
     # Confirm provisioning state
     $state = az containerapp show --name $Name --resource-group $RG --query "properties.provisioningState" -o tsv 2>$null
     if ($state -ne "Succeeded") {
-        Die "$Name provisioning state is '$state' — expected Succeeded. Check Azure Portal logs."
+        Die "$Name provisioning state is '$state' -- expected Succeeded. Check Azure Portal logs."
     }
     Log "$Name provisioning state: $state"
 }
 
 # ── 4.1 Python services (internal) ───────────────────────────────────────────
-Log "Step 4.1 — truepath-python"
+Log "Step 4.1 -- truepath-python"
 Deploy-ContainerApp `
     -Name        "truepath-python" `
     -Image       "$ACR_SERVER/truepath-python:staging" `
@@ -157,7 +157,7 @@ Deploy-ContainerApp `
     -EnvVars     ($COMMON_SECRET_ENVVARS + @("STORAGE_MODE=local"))
 
 # ── 4.2 Express backend (internal) ───────────────────────────────────────────
-Log "Step 4.2 — truepath-backend"
+Log "Step 4.2 -- truepath-backend"
 Deploy-ContainerApp `
     -Name        "truepath-backend" `
     -Image       "$ACR_SERVER/truepath-backend:staging" `
@@ -176,7 +176,7 @@ Deploy-ContainerApp `
     ))
 
 # ── 4.3 Next.js frontend (external) ──────────────────────────────────────────
-Log "Step 4.3 — truepath-frontend"
+Log "Step 4.3 -- truepath-frontend"
 Deploy-ContainerApp `
     -Name        "truepath-frontend" `
     -Image       "$ACR_SERVER/truepath-frontend:staging" `

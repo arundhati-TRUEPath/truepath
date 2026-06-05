@@ -1,24 +1,24 @@
-<#
+﻿<#
 .SYNOPSIS
   Phase 3: Build and push Docker images to Azure Container Registry using ACR Tasks.
 
 .DESCRIPTION
-  Uses `az acr build` — no local Docker daemon required.
+  Uses `az acr build` -- no local Docker daemon required.
   Reads ACR name and Key Vault name from deploy-outputs.json (written by deploy-phase2.ps1).
-  Fully idempotent — safe to re-run; each `az acr build` overwrites the :staging tag.
+  Fully idempotent -- safe to re-run; each `az acr build` overwrites the :staging tag.
 
   Build source resolution order:
     1. $PSScriptRoot/.. if it contains frontend/ backend/ services/ (running from inside the repo)
     2. -RepoRoot param if provided
     3. Clone/pull into ~/truepath-src using PAT from Key Vault (GITHUB-PAT secret).
        PAT is used only for the git operation, immediately wiped from remote config and memory.
-       az acr build then uses the local clone — PAT never appears in any az CLI argument.
+       az acr build then uses the local clone -- PAT never appears in any az CLI argument.
 
   GitHub PAT setup (one-time):
     1. Create a PAT at GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
        Scopes required: repo (read)
     2. Add GITHUB_PAT=<token> to backend/.env
-    3. Re-run deploy-phase2.ps1 — it stores the PAT in Key Vault as GITHUB-PAT
+    3. Re-run deploy-phase2.ps1 -- it stores the PAT in Key Vault as GITHUB-PAT
 
 .PREREQUISITES
   - Azure CLI installed and logged in (auto in Cloud Shell)
@@ -26,10 +26,10 @@
   - GITHUB-PAT stored in Key Vault (via deploy-phase2.ps1) when running outside the repo
 
 .USAGE
-  # Cloud Shell — upload this script and deploy-outputs.json, then:
+  # Cloud Shell -- upload this script and deploy-outputs.json, then:
   ./deploy-phase3.ps1
 
-  # From inside the repo (Key Vault lookup skipped — local paths used):
+  # From inside the repo (Key Vault lookup skipped -- local paths used):
   pwsh scripts/deploy-phase3.ps1
 #>
 
@@ -82,7 +82,7 @@ if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
 $accountRaw = az account show 2>$null
 if (-not $accountRaw) { Die "Not logged in. Run: az login" }
 $account = $accountRaw | ConvertFrom-Json
-Log "Logged in as: $($account.user.name) — $($account.name)"
+Log "Logged in as: $($account.user.name) -- $($account.name)"
 
 # ── Read outputs ──────────────────────────────────────────────────────────────
 $out = Get-Content $OUTPUTS_FILE | ConvertFrom-Json
@@ -91,16 +91,16 @@ $ACR_SERVER = $out.acr_login_server
 $SUB_ID     = $out.subscription_id
 $KV_NAME    = $out.kv_name
 
-if (-not $ACR_NAME)   { Die "acr_name missing in deploy-outputs.json — re-run deploy-phase2.ps1" }
-if (-not $ACR_SERVER) { Die "acr_login_server missing in deploy-outputs.json — re-run deploy-phase2.ps1" }
-if (-not $KV_NAME)    { Die "kv_name missing in deploy-outputs.json — re-run deploy-phase2.ps1" }
+if (-not $ACR_NAME)   { Die "acr_name missing in deploy-outputs.json -- re-run deploy-phase2.ps1" }
+if (-not $ACR_SERVER) { Die "acr_login_server missing in deploy-outputs.json -- re-run deploy-phase2.ps1" }
+if (-not $KV_NAME)    { Die "kv_name missing in deploy-outputs.json -- re-run deploy-phase2.ps1" }
 
 az account set --subscription $SUB_ID
 if ($LASTEXITCODE -ne 0) { Die "Failed to set subscription $SUB_ID." }
 
 # ── Resolve build source ──────────────────────────────────────────────────────
 # Prefer local paths (no Key Vault lookup needed).
-# Fall back to GitHub URL — PAT fetched from Key Vault, never passed on CLI.
+# Fall back to GitHub URL -- PAT fetched from Key Vault, never passed on CLI.
 $useLocal  = $false
 $localRoot = ""
 $GitHubPat = $null
@@ -114,14 +114,14 @@ if ($RepoRoot -ne "" -and (Test-RepoRoot $RepoRoot)) {
     $useLocal  = $true
     Log "Running from inside repo: $localRoot"
 } else {
-    # Cloud Shell standalone — clone/pull using PAT from Key Vault
-    Log "No local repo found — fetching GITHUB-PAT from Key Vault ($KV_NAME)..."
+    # Cloud Shell standalone -- clone/pull using PAT from Key Vault
+    Log "No local repo found -- fetching GITHUB-PAT from Key Vault ($KV_NAME)..."
     $GitHubPat = az keyvault secret show --vault-name $KV_NAME --name "GITHUB-PAT" --query "value" -o tsv 2>$null
     if ($LASTEXITCODE -ne 0 -or -not $GitHubPat) {
         Die @"
 GITHUB-PAT secret not found in Key Vault '$KV_NAME'.
 Store it once by adding GITHUB_PAT=<token> to backend/.env and re-running deploy-phase2.ps1.
-Token requires 'repo' read scope — create at:
+Token requires 'repo' read scope -- create at:
   GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
 "@
     }
@@ -132,7 +132,7 @@ Token requires 'repo' read scope — create at:
     $cleanUrl = $RepoUrl
 
     if (Test-Path $cloneTarget) {
-        Log "Repo exists at $cloneTarget — pulling latest..."
+        Log "Repo exists at $cloneTarget -- pulling latest..."
         git -C $cloneTarget remote set-url origin $authUrl
         git -C $cloneTarget pull
         if ($LASTEXITCODE -ne 0) { Die "git pull failed." }
@@ -142,7 +142,7 @@ Token requires 'repo' read scope — create at:
         if ($LASTEXITCODE -ne 0) { Die "git clone failed." }
     }
 
-    # Wipe PAT from remote config and memory immediately — not needed after this point
+    # Wipe PAT from remote config and memory immediately -- not needed after this point
     git -C $cloneTarget remote set-url origin $cleanUrl
     $GitHubPat = $null
     $authUrl   = $null
@@ -187,7 +187,7 @@ $allOk = $true
 foreach ($svc in $services) {
     $tagRaw = az acr repository show-tags --name $ACR_NAME --repository $svc.Name --query "[?@=='staging']" -o tsv 2>$null
     if ($tagRaw -and $tagRaw.Trim() -eq "staging") {
-        Log "  $($svc.Name):staging — OK"
+        Log "  $($svc.Name):staging -- OK"
     } else {
         Write-Host "[WARN] $($svc.Name):staging not confirmed in ACR"
         $allOk = $false

@@ -1,10 +1,10 @@
-<#
+﻿<#
 .SYNOPSIS
   Phase 2: Azure Infrastructure Setup for TruePath staging environment.
 
 .DESCRIPTION
   Creates all Azure resources needed before deploying container images.
-  Fully idempotent — safe to re-run after any failure point.
+  Fully idempotent -- safe to re-run after any failure point.
   Outputs resource IDs/names to scripts/deploy-outputs.json for use by Phase 3/4.
 
 .PREREQUISITES
@@ -72,7 +72,7 @@ function Read-EnvValue($file, $key) {
     if (-not $line) { Die "Key '$key' not found in $file" }
     $value = ($line -split '=', 2)[1].Trim()
     if ($value -match '^"(.*)"$' -or $value -match "^'(.*)'$") { $value = $Matches[1] }
-    if (-not $value) { Die "Key '$key' has an empty value in $file — fill it in before running." }
+    if (-not $value) { Die "Key '$key' has an empty value in $file -- fill it in before running." }
     return $value
 }
 
@@ -95,7 +95,7 @@ if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
 $accountRaw = az account show 2>$null
 if (-not $accountRaw) { Die "Not logged in. Run: az login" }
 try { $account = $accountRaw | ConvertFrom-Json }
-catch { Die "az account show returned unparseable output — try: az login" }
+catch { Die "az account show returned unparseable output -- try: az login" }
 if (-not $account) { Die "Not logged in. Run: az login" }
 Log "Logged in as: $($account.user.name)"
 
@@ -122,7 +122,7 @@ if ($DEPLOYER_OID) {
         Write-Host "│   az role assignment create --assignee $DEPLOYER_OID             │"
         Write-Host "│     --role Owner --scope $rgScope │"
         Write-Host "│                                                                   │"
-        Write-Host "│ Script will continue — Key Vault uses access policies (no Owner) │"
+        Write-Host "│ Script will continue -- Key Vault uses access policies (no Owner) │"
         Write-Host "└─────────────────────────────────────────────────────────────────┘"
         Write-Host ""
     }
@@ -140,16 +140,16 @@ $secrets = @{
     "DATABASE-URL"   = Read-EnvValue $ENV_FILE "DATABASE_URL"
 }
 
-# GITHUB-PAT is optional — needed by Phase 3 to pull source from GitHub.
+# GITHUB-PAT is optional -- needed by Phase 3 to pull source from GitHub.
 # Add GITHUB_PAT=<token> to .env to have it stored securely in Key Vault.
 # Token requires repo read scope. Create at:
 #   GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
 $githubPatValue = Read-EnvValueOptional $ENV_FILE "GITHUB_PAT"
 if ($githubPatValue) {
     $secrets["GITHUB-PAT"] = $githubPatValue
-    Log "GITHUB_PAT found — will store in Key Vault for Phase 3."
+    Log "GITHUB_PAT found -- will store in Key Vault for Phase 3."
 } else {
-    Log "GITHUB_PAT not in .env — skipping. Phase 3 requires it; add it and re-run this script."
+    Log "GITHUB_PAT not in .env -- skipping. Phase 3 requires it; add it and re-run this script."
 }
 Log "Secrets loaded: $($secrets.Keys -join ', ')"
 
@@ -170,10 +170,10 @@ $providers = @(
 )
 foreach ($ns in $providers) {
     $stateRaw = az provider show --namespace $ns --query "registrationState" -o tsv 2>$null
-    if ($LASTEXITCODE -ne 0) { Die "Failed to query provider state for $ns — check subscription permissions." }
+    if ($LASTEXITCODE -ne 0) { Die "Failed to query provider state for $ns -- check subscription permissions." }
     $state = $stateRaw.Trim()
     if ($state -ne "Registered") {
-        Log "  Registering $ns (state: $state) — this can take 1-3 min..."
+        Log "  Registering $ns (state: $state) -- this can take 1-3 min..."
         az provider register --namespace $ns --wait | Out-Null
         if ($LASTEXITCODE -ne 0) { Die "Failed to register provider $ns." }
         Log "  $ns registered."
@@ -183,7 +183,7 @@ foreach ($ns in $providers) {
 }
 
 # ── 2.2 Azure Container Registry ─────────────────────────────────────────────
-Log "Step 2.2 — Azure Container Registry: $ACR_NAME"
+Log "Step 2.2 -- Azure Container Registry: $ACR_NAME"
 $acrExistingRaw = az acr show --name $ACR_NAME --resource-group $RG 2>$null
 if ($LASTEXITCODE -eq 0 -and $acrExistingRaw) {
     Log "ACR $ACR_NAME already exists, reusing."
@@ -205,14 +205,14 @@ if ($LASTEXITCODE -eq 0 -and $acrExistingRaw) {
 Log "ACR login server: $ACR_LOGIN_SERVER"
 
 # ── 2.3 Log Analytics Workspace ───────────────────────────────────────────────
-Log "Step 2.3 — Log Analytics Workspace: $LAW_NAME"
+Log "Step 2.3 -- Log Analytics Workspace: $LAW_NAME"
 $lawExistingRaw = az monitor log-analytics workspace show --workspace-name $LAW_NAME --resource-group $RG 2>$null
 if ($LASTEXITCODE -eq 0 -and $lawExistingRaw) {
     Log "Log Analytics Workspace $LAW_NAME already exists, reusing."
     $lawJson = $lawExistingRaw | ConvertFrom-Json
     $provState = $lawJson.provisioningState
     if ($provState -ne "Succeeded") {
-        Die "Log Analytics Workspace exists but provisioningState=$provState — resolve before re-running."
+        Die "Log Analytics Workspace exists but provisioningState=$provState -- resolve before re-running."
     }
 } else {
     $lawRaw = az monitor log-analytics workspace create `
@@ -221,7 +221,7 @@ if ($LASTEXITCODE -eq 0 -and $lawExistingRaw) {
         --location $LOCATION
     if ($LASTEXITCODE -ne 0) { Die "Log Analytics workspace creation failed. Raw output: $lawRaw" }
     $lawJson = $lawRaw | ConvertFrom-Json
-    # Poll until Succeeded — get-shared-keys returns 404 if called while still provisioning
+    # Poll until Succeeded -- get-shared-keys returns 404 if called while still provisioning
     Log "Waiting for Log Analytics Workspace to finish provisioning..."
     $maxAttempts = 60   # 5 min max (60 * 5s)
     for ($i = 0; $i -lt $maxAttempts; $i++) {
@@ -242,7 +242,7 @@ if ($LASTEXITCODE -eq 0 -and $lawExistingRaw) {
 $LAW_RESOURCE_ID = $lawJson.id
 $LAW_ID          = $lawJson.customerId
 if (-not $LAW_RESOURCE_ID) { Die "Log Analytics workspace 'id' field missing in response." }
-if (-not $LAW_ID) { Die "Log Analytics workspace 'customerId' (GUID) field missing — cannot proceed." }
+if (-not $LAW_ID) { Die "Log Analytics workspace 'customerId' (GUID) field missing -- cannot proceed." }
 Log "Log Analytics Workspace resource ID: $LAW_RESOURCE_ID"
 Log "Log Analytics Workspace customer ID (GUID): $LAW_ID"
 
@@ -254,7 +254,7 @@ $LAW_KEY = ($lawKeysRaw | ConvertFrom-Json).primarySharedKey
 if (-not $LAW_KEY) { Die "primarySharedKey was null in LAW shared-keys response." }
 
 # ── 2.4 Container Apps Environment ────────────────────────────────────────────
-Log "Step 2.4 — Container Apps Environment: $ENV_NAME"
+Log "Step 2.4 -- Container Apps Environment: $ENV_NAME"
 $envExistingRaw = az containerapp env show --name $ENV_NAME --resource-group $RG 2>$null
 if ($LASTEXITCODE -eq 0 -and $envExistingRaw) {
     Log "Container Apps Environment $ENV_NAME already exists, reusing."
@@ -272,13 +272,13 @@ if ($LASTEXITCODE -eq 0 -and $envExistingRaw) {
 }
 $ENV_RESOURCE_ID    = $envJson.id
 $ENV_DEFAULT_DOMAIN = $envJson.properties.defaultDomain
-if (-not $ENV_DEFAULT_DOMAIN) { Die "Container Apps Environment defaultDomain missing in response — cannot proceed." }
+if (-not $ENV_DEFAULT_DOMAIN) { Die "Container Apps Environment defaultDomain missing in response -- cannot proceed." }
 Log "Container Apps Environment default domain: $ENV_DEFAULT_DOMAIN"
 
 # ── 2.5 Key Vault + secrets ───────────────────────────────────────────────────
 # Key Vault uses ACCESS POLICIES (not RBAC) so deployer only needs Key Vault Contributor,
 # not Microsoft.Authorization/roleAssignments/write (which requires Owner).
-Log "Step 2.5 — Key Vault: $KV_NAME"
+Log "Step 2.5 -- Key Vault: $KV_NAME"
 $kvExistingRaw = az keyvault show --name $KV_NAME --resource-group $RG 2>$null
 if ($LASTEXITCODE -eq 0 -and $kvExistingRaw) {
     Log "Key Vault $KV_NAME already exists, reusing."
@@ -289,13 +289,13 @@ if ($LASTEXITCODE -eq 0 -and $kvExistingRaw) {
     $KV_URI = $kvJson.properties.vaultUri
     # If vault was created in RBAC mode, switch it to access policy mode
     if ($kvJson.properties.enableRbacAuthorization -eq $true) {
-        Log "Vault is in RBAC mode — switching to access policy mode (requires only Contributor)..."
+        Log "Vault is in RBAC mode -- switching to access policy mode (requires only Contributor)..."
         az keyvault update --name $KV_NAME --resource-group $RG --enable-rbac-authorization false | Out-Null
         if ($LASTEXITCODE -ne 0) { Die "Failed to switch Key Vault to access policy mode." }
         Log "Vault switched to access policy mode."
     }
 } else {
-    # Create with access policies disabled (legacy model — no roleAssignments/write needed)
+    # Create with access policies disabled (legacy model -- no roleAssignments/write needed)
     $kvRaw = az keyvault create --name $KV_NAME --resource-group $RG --location $LOCATION --enable-rbac-authorization false
     if ($LASTEXITCODE -ne 0) { Die "Key Vault creation failed. Raw output: $kvRaw" }
     $kvJson = $kvRaw | ConvertFrom-Json
@@ -306,8 +306,8 @@ if ($LASTEXITCODE -eq 0 -and $kvExistingRaw) {
 }
 Log "Key Vault URI: $KV_URI"
 
-# Grant deployer access via access policy — no roleAssignments/write needed.
-if (-not $DEPLOYER_OID) { Die "DEPLOYER_OID not set — this should have been resolved in pre-flight." }
+# Grant deployer access via access policy -- no roleAssignments/write needed.
+if (-not $DEPLOYER_OID) { Die "DEPLOYER_OID not set -- this should have been resolved in pre-flight." }
 Log "Setting Key Vault access policy for deployer OID: $DEPLOYER_OID..."
 az keyvault set-policy --name $KV_NAME --object-id $DEPLOYER_OID --secret-permissions get set list delete | Out-Null
 if ($LASTEXITCODE -ne 0) { Die "Failed to set Key Vault access policy for deployer." }
@@ -331,13 +331,13 @@ foreach ($key in $secrets.Keys) {
 }
 
 # ── 2.6 Storage Account + blob container ──────────────────────────────────────
-Log "Step 2.6 — Storage Account: $SA_NAME"
+Log "Step 2.6 -- Storage Account: $SA_NAME"
 $saExistingRaw = az storage account show --name $SA_NAME --resource-group $RG 2>$null
 if ($LASTEXITCODE -eq 0 -and $saExistingRaw) {
     Log "Storage account $SA_NAME already exists, reusing."
     $saJson = $saExistingRaw | ConvertFrom-Json
     if ($saJson.provisioningState -ne "Succeeded") {
-        Die "Storage account exists but provisioningState=$($saJson.provisioningState) — resolve before re-running."
+        Die "Storage account exists but provisioningState=$($saJson.provisioningState) -- resolve before re-running."
     }
     $SA_ID = $saJson.id
 } else {
@@ -354,7 +354,7 @@ if ($LASTEXITCODE -ne 0) { Die "Blob container creation failed. Raw: $containerR
 Log "Blob container '$BLOB_CTR' ready."
 
 # ── 2.7 Managed Identity + role assignments ────────────────────────────────────
-Log "Step 2.7 — Managed Identity: $MI_NAME"
+Log "Step 2.7 -- Managed Identity: $MI_NAME"
 $miExistingRaw = az identity show --name $MI_NAME --resource-group $RG 2>$null
 if ($LASTEXITCODE -eq 0 -and $miExistingRaw) {
     Log "Managed Identity $MI_NAME already exists, reusing."
@@ -373,7 +373,7 @@ if (-not $MI_PRINCIPAL_ID) { Die "Managed Identity principalId missing in respon
 Log "Identity principal ID: $MI_PRINCIPAL_ID"
 Log "Identity client ID:    $MI_CLIENT_ID"
 
-# Always sleep before role assignments — AAD replication for brand-new SPs can take 1-2 min.
+# Always sleep before role assignments -- AAD replication for brand-new SPs can take 1-2 min.
 # On re-use the sleep is short; on new creation it's the full 30s.
 $propagationSleep = if ($isNewIdentity) { 30 } else { 10 }
 Log "Waiting ${propagationSleep}s for identity propagation before role assignments..."
@@ -385,7 +385,7 @@ az keyvault set-policy --name $KV_NAME --object-id $MI_PRINCIPAL_ID --secret-per
 if ($LASTEXITCODE -ne 0) { Die "Failed to set Key Vault access policy for managed identity." }
 Log "Managed identity Key Vault access policy set."
 
-# ACR and Storage require RBAC role assignments — needs Owner at resource group scope.
+# ACR and Storage require RBAC role assignments -- needs Owner at resource group scope.
 $ACR_SCOPE = "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.ContainerRegistry/registries/$ACR_NAME"
 $SA_SCOPE  = "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/$SA_NAME"
 
@@ -396,7 +396,7 @@ foreach ($assignment in @(
     $exists = (az role assignment list --assignee $MI_PRINCIPAL_ID --role $assignment.Role --scope $assignment.Scope --query "[0].id" -o tsv 2>$null)
     if (-not $exists) {
         Log "Assigning $($assignment.Label)..."
-        # Use --assignee-object-id to skip AAD Graph resolution — avoids PrincipalNotFound on fresh identities.
+        # Use --assignee-object-id to skip AAD Graph resolution -- avoids PrincipalNotFound on fresh identities.
         az role assignment create `
             --assignee-object-id $MI_PRINCIPAL_ID `
             --assignee-principal-type ServicePrincipal `

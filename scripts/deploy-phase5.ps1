@@ -1,14 +1,14 @@
-<#
+﻿<#
 .SYNOPSIS
   Phase 5: Upload RAG source files and deploy the scheduled indexer job.
 
 .DESCRIPTION
-  5.1 — Uploads files from the repo's rag-data/ directory to Azure Blob Storage.
-  5.2 — Creates the Container Apps Job (truepath-rag-job) with a daily 06:00 UTC schedule.
-  5.3 — Triggers a manual run and waits for it to complete successfully.
+  5.1 -- Uploads files from the repo's rag-data/ directory to Azure Blob Storage.
+  5.2 -- Creates the Container Apps Job (truepath-rag-job) with a daily 06:00 UTC schedule.
+  5.3 -- Triggers a manual run and waits for it to complete successfully.
 
   Reads all resource IDs from deploy-outputs.json (written by deploy-phase2.ps1).
-  Idempotent — safe to re-run: blob upload overwrites, job creation skipped if exists.
+  Idempotent -- safe to re-run: blob upload overwrites, job creation skipped if exists.
 
 .USAGE
   Via conductor (recommended):
@@ -89,7 +89,7 @@ $KV_OPENAI_URI = $out.kv_secret_uris.'OPENAI-API-KEY'
 $KV_DB_URL_URI = $out.kv_secret_uris.'DATABASE-URL'
 
 foreach ($v in @($SUB_ID,$RG,$ACR_SERVER,$ENV_NAME,$MI_ID,$SA_NAME,$BLOB_CTR,$KV_OPENAI_URI,$KV_DB_URL_URI)) {
-    if (-not $v -or $v -like "<pending*") { Die "deploy-outputs.json has unpopulated values — re-run Phase 2." }
+    if (-not $v -or $v -like "<pending*") { Die "deploy-outputs.json has unpopulated values -- re-run Phase 2." }
 }
 
 az account set --subscription $SUB_ID
@@ -101,7 +101,7 @@ $MI_CLIENT_ID = (az identity show --ids $MI_ID --query "clientId" -o tsv)
 if ($LASTEXITCODE -ne 0) { Die "Failed to resolve managed identity client ID." }
 
 # ── 5.1 Upload RAG files to Blob Storage ─────────────────────────────────────
-Log "Step 5.1 — Uploading RAG files from $RAG_DATA_DIR to $SA_NAME/$BLOB_CTR..."
+Log "Step 5.1 -- Uploading RAG files from $RAG_DATA_DIR to $SA_NAME/$BLOB_CTR..."
 az storage blob upload-batch `
     --destination $BLOB_CTR `
     --source $RAG_DATA_DIR `
@@ -114,10 +114,10 @@ $blobCount = (az storage blob list --container-name $BLOB_CTR --account-name $SA
 Log "Blob container now has $blobCount file(s)."
 
 # ── 5.2 Create Container Apps Job ─────────────────────────────────────────────
-Log "Step 5.2 — Container Apps Job: $JOB_NAME"
+Log "Step 5.2 -- Container Apps Job: $JOB_NAME"
 $jobExistingRaw = az containerapp job show --name $JOB_NAME --resource-group $RG 2>$null
 if ($LASTEXITCODE -eq 0 -and $jobExistingRaw) {
-    Log "$JOB_NAME already exists — skipping create."
+    Log "$JOB_NAME already exists -- skipping create."
 } else {
     Log "Creating $JOB_NAME..."
     az containerapp job create `
@@ -148,7 +148,7 @@ if ($LASTEXITCODE -eq 0 -and $jobExistingRaw) {
 }
 
 # ── 5.2a Update existing job command + env (idempotent) ──────────────────────
-Log "Step 5.2a — Updating $JOB_NAME command and env vars..."
+Log "Step 5.2a -- Updating $JOB_NAME command and env vars..."
 az containerapp job update `
     --name          $JOB_NAME `
     --resource-group $RG `
@@ -159,7 +159,7 @@ if ($LASTEXITCODE -ne 0) { Die "Failed to update $JOB_NAME." }
 Log "$JOB_NAME updated."
 
 # ── 5.3 Trigger manual run + wait for completion ──────────────────────────────
-Log "Step 5.3 — Triggering manual run of $JOB_NAME..."
+Log "Step 5.3 -- Triggering manual run of $JOB_NAME..."
 $execRaw = az containerapp job start --name $JOB_NAME --resource-group $RG
 if ($LASTEXITCODE -ne 0) { Die "Failed to start job execution." }
 $execName = ($execRaw | ConvertFrom-Json).name
@@ -198,5 +198,5 @@ Write-Host " RAG files uploaded : $blobCount file(s) in $SA_NAME/$BLOB_CTR"
 Write-Host " Job created        : $JOB_NAME (schedule: 0 6 * * * UTC)"
 Write-Host " Manual run status  : Succeeded ($execName)"
 Write-Host "============================================"
-Write-Host " Next: Phase 6 — validate the staging deployment"
+Write-Host " Next: Phase 6 -- validate the staging deployment"
 Write-Host " Frontend: https://truepath-frontend.ashybush-4cbf3768.eastus.azurecontainerapps.io"

@@ -136,7 +136,31 @@
 - **LN-21:** PDF chunks are extracted as a single chunk per file with the current `pdf_parser`. This is a pre-existing limitation — each PDF produces 1 chunk. Excel files chunk by row (17-18 chunks each). RAG quality for PDF content may be limited until the parser is improved.
 
 ## Phase 5 — End-to-End Verification
-*(Pending)*
+
+### Steps Completed
+| Step | Status | Notes |
+|---|---|---|
+| Start Python service (port 8000) | DONE | uvicorn, `GET /health → ok` |
+| Start backend (port 4000) | DONE | tsx, `GET /health → ok` |
+| `POST /sessions/start` | DONE | sessionId returned ✓ |
+| `GET /intake/questions` | DONE | 7 seed questions ✓ |
+| `POST /intake/followup` | DONE | 3 followup questions returned, 7 session_responses saved ✓ |
+| `POST /skills/infer` | DONE | 9 skills (6 high confidence) ✓ |
+| `POST /skills/confirm` | DONE | status: confirmed ✓ |
+| `POST /pathways/recommend` | DONE | 3 pathways, sources: Nursing / Rehabilitation / Pharmacy PDFs ✓ |
+
+### Verification Results
+| Check | Expected | Actual |
+|---|---|---|
+| Seed questions | 7 | 7 ✓ |
+| Followup questions | 3 | 3 ✓ |
+| Skills inferred | ≥1 | 9 (6 high) ✓ |
+| Pathways generated | 3 | 3 ✓ |
+| RAG sources used | PDF files | Nursing / Rehabilitation / Pharmacy ✓ |
+| Integration tests | 12/12 | 12/12 ✓ |
+
+### Learnings — Phase 5
+- **LN-22:** PowerShell background jobs (`Start-Job`) do not persist between separate PowerShell tool calls — each tool invocation is a new process. Use `Start-Process` with `-WindowStyle Hidden` for services that must survive across calls.
 
 ---
 

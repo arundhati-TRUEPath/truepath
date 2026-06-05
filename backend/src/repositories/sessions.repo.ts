@@ -1,5 +1,4 @@
 import { pool } from '../db/client';
-import { DatabaseError } from '../errors/AppError';
 import type { Session, SessionStatus } from '../types/sessions';
 import type { IntakeAnswer } from '../types/intake';
 

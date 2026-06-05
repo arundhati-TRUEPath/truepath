@@ -111,43 +111,44 @@ def build_index(rag_data_dir: Path | None = None) -> dict:
     processed: list[dict] = []
     errors: list[dict] = []
 
-    for file_path in sorted(data_dir.iterdir()):
-        suffix = file_path.suffix.lower()
-        if suffix == ".pdf":
-            file_type = "pdf"
-            chunks = pdf_chunks(file_path)
-        elif suffix in {".xlsx", ".xls"}:
-            file_type = "excel"
-            chunks = excel_chunks(file_path)
-        else:
-            continue
+    try:
+        for file_path in sorted(data_dir.iterdir()):
+            suffix = file_path.suffix.lower()
+            if suffix == ".pdf":
+                file_type = "pdf"
+                chunks = pdf_chunks(file_path)
+            elif suffix in {".xlsx", ".xls"}:
+                file_type = "excel"
+                chunks = excel_chunks(file_path)
+            else:
+                continue
 
-        if not chunks:
-            errors.append({"file": file_path.name, "reason": "no_chunks_extracted"})
-            continue
+            if not chunks:
+                errors.append({"file": file_path.name, "reason": "no_chunks_extracted"})
+                continue
 
-        try:
-            doc_id = _upsert_document(cur, file_path.name, file_type, str(file_path))
+            try:
+                doc_id = _upsert_document(cur, file_path.name, file_type, str(file_path))
 
-            texts = [c["content"] for c in chunks]
-            all_embeddings: list[list[float]] = []
-            for i in range(0, len(texts), _EMBED_BATCH_SIZE):
-                all_embeddings.extend(embed_batch(texts[i : i + _EMBED_BATCH_SIZE]))
+                texts = [c["content"] for c in chunks]
+                all_embeddings: list[list[float]] = []
+                for i in range(0, len(texts), _EMBED_BATCH_SIZE):
+                    all_embeddings.extend(embed_batch(texts[i : i + _EMBED_BATCH_SIZE]))
 
-            _upsert_chunks(cur, doc_id, chunks, all_embeddings)
-            cur.execute(
-                "UPDATE rag_documents SET chunk_count = %s WHERE id = %s",
-                (len(chunks), doc_id),
-            )
+                _upsert_chunks(cur, doc_id, chunks, all_embeddings)
+                cur.execute(
+                    "UPDATE rag_documents SET chunk_count = %s WHERE id = %s",
+                    (len(chunks), doc_id),
+                )
 
-            logger.info("ingested %s (%d chunks)", file_path.name, len(chunks))
-            processed.append({"file": file_path.name, "chunks": len(chunks)})
-        except Exception as exc:
-            logger.error("failed to ingest %s: %s", file_path.name, exc)
-            errors.append({"file": file_path.name, "reason": str(exc)})
-
-    cur.close()
-    conn.close()
+                logger.info("ingested %s (%d chunks)", file_path.name, len(chunks))
+                processed.append({"file": file_path.name, "chunks": len(chunks)})
+            except Exception as exc:
+                logger.error("failed to ingest %s: %s", file_path.name, exc)
+                errors.append({"file": file_path.name, "reason": str(exc)})
+    finally:
+        cur.close()
+        conn.close()
 
     if tmp_dir is not None:
         shutil.rmtree(tmp_dir, ignore_errors=True)

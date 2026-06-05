@@ -1,5 +1,4 @@
 import { pool } from '../db/client';
-import { DatabaseError } from '../errors/AppError';
 import type { LlmSkill } from '../services/llm';
 
 export interface ClientSkill {

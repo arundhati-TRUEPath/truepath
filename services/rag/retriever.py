@@ -11,9 +11,12 @@ from embeddings.embed import embed_text
 _DEFAULT_TOP_K = 5
 _DEFAULT_THRESHOLD = 0.5
 
+_DATABASE_URL = os.environ["DATABASE_URL"]
+
 
 def _connect():
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn = psycopg2.connect(_DATABASE_URL)
+    conn.autocommit = True
     register_vector(conn)
     return conn
 

@@ -13,7 +13,6 @@ describe('POST /api/v1/sessions/start', () => {
       await pool.query('DELETE FROM session_responses WHERE session_id = ANY($1::uuid[])', [createdIds]);
       await pool.query('DELETE FROM sessions WHERE id = ANY($1::uuid[])', [createdIds]);
     }
-    await pool.end();
   });
 
   it('returns 201 with a UUID sessionId', async () => {

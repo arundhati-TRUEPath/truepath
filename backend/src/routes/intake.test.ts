@@ -5,10 +5,6 @@ import { pool } from '../db/client';
 
 const app = createApp();
 
-afterAll(async () => {
-  await pool.end();
-});
-
 describe('GET /api/v1/intake/questions', () => {
   it('returns 200 with 7 seed questions', async () => {
     const res = await request(app)

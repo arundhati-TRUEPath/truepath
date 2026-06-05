@@ -1,5 +1,4 @@
 import { pool } from '../db/client';
-import { DatabaseError } from '../errors/AppError';
 import type { Question } from '../types/intake';
 import type { FollowupQuestionInsert } from '../services/llm';
 

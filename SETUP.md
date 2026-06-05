@@ -88,18 +88,11 @@ PYTHON_SERVICES_URL=http://localhost:8000
 ### services/.env
 
 ```env
-PORT=4000
-CORS_ORIGIN=http://localhost:3000
-
 # Database (Azure PostgreSQL — same connection string as backend)
 DATABASE_URL=postgresql://<user>:<password>@truepath-db.postgres.database.azure.com:5432/postgres?sslmode=require
 
 OPENAI_API_KEY=<your-api-key>
-OPENAI_MODEL=gpt-4o
-OPENAI_FOLLOWUP_MODEL=gpt-4.1-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-
-PYTHON_SERVICES_URL=http://localhost:8000
 ```
 
 ---

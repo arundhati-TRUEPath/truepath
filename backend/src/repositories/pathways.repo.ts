@@ -1,5 +1,4 @@
 import { pool } from '../db/client';
-import { DatabaseError } from '../errors/AppError';
 
 export interface CareerStep {
   role: string;

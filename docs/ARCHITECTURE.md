@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | **Status** | MVP — Active |
-| **Date** | May 2026 |
+| **Date** | June 2026 |
 | **Stack** | Next.js 15 · Express 4 · Python 3.10 · TypeScript strict |
 | **Source docs merged** | `FRONTEND_ARCHITECTURE.md`, `system-design.md` |
 
@@ -34,8 +34,8 @@ These are non-negotiable. Every architectural decision below is constrained by t
 | Server state | **TanStack Query v5** | Manages the loading/error/retry lifecycle for AI endpoints that take 2–8s. Built-in `staleTime`, `retry`, and `onError` callbacks remove boilerplate from every feature hook. |
 | HTTP client | **Axios** | Interceptors centralize error normalization into `AppError`. Response type inference via generics. |
 | Backend runtime | **Node.js / Express 4 + TypeScript** | Thin orchestration layer — no heavy framework needed. Validates input with Zod, fans out to OpenAI and Python services, returns typed JSON. |
-| AI / ML services | **Python 3.10 (embeddings + indexing)** | Python owns tiktoken and the OpenAI embeddings SDK. `embed.py` is called by Express via HTTP for request-time embedding. `indexer.py` runs offline to upsert skill vectors into Supabase. Keeps the embedding pipeline in the ecosystem best suited for it without polluting the Node.js process. |
-| Database | **Supabase (PostgreSQL + pgvector)** | Single platform for relational data (seed questions + choices, session rows) and vector search (skill embeddings via pgvector). Eliminates FAISS on disk and a separate session storage concern. For MVP corpus (< 1000 skills), pgvector cosine search is well within performance bounds. If corpus grows past ~100k entries, `rag.ts` is the only migration point. |
+| AI / ML services | **Python 3.10 (embeddings + RAG)** | Python owns tiktoken and the OpenAI embeddings SDK. `embed.py` is called by Express via HTTP for request-time embedding. `indexer.py` runs offline to upsert vectors into Azure PostgreSQL. `retriever.py` is called by Express via HTTP on every `/pathways/recommend` request to run the pgvector cosine similarity search. Keeps the embedding and retrieval pipeline in the ecosystem best suited for it without polluting the Node.js process. |
+| Database | **Azure Database for PostgreSQL Flexible Server + pgvector** | Single platform for relational data (seed questions + choices, session rows) and vector search (RAG chunk embeddings via pgvector). Server: `truepath-db.postgres.database.azure.com`, PostgreSQL 16, Standard_B2ms, region: `northcentralus`. pgvector extension enabled with HNSW index on `rag_chunks.embedding`. All connections use TLS (`sslmode=require`). `pg.Pool` (Node.js) and `psycopg2` (Python) are the client drivers. |
 | Language across all layers | **TypeScript strict** | Shared type contracts between frontend and backend. `unknown` for all external data at system boundaries. No `any`. |
 
 ---
@@ -54,20 +54,20 @@ These are non-negotiable. Every architectural decision below is constrained by t
 │  Express 4 + TypeScript                                              │
 │  Routes: /intake · /skills · /pathways · /analytics                  │
 │  Middleware: CORS · JSON · Zod validation · Error handler            │
-│  Services: llm.ts · embeddings.ts · rag.ts · db.ts                  │
+│  Services: llm.ts · rag.ts  ·  Data: db/client.ts (pg.Pool)         │
 └──────┬──────────────────────┬──────────────────────┬─────────────────┘
-       │  LLM_PROVIDER (chat) │  HTTP (embeddings)   │  Supabase JS SDK
+       │  OpenAI (chat)       │  HTTP /search        │  pg.Pool (TLS)
        ▼                      ▼                      ▼
-┌──────────────────┐  ┌───────────────────┐  ┌──────────────────────────┐
-│  LLM Chat        │  │  Python Services  │  │  Supabase                │
-│  ──────────────  │  │  embed.py         │  │  PostgreSQL (relational)  │
-│  OpenAI → gpt-5.4│  │  indexer.py       │  │  ─ questions + choices   │
-│  OSS → gpt-oss   │  │  (offline only)   │  │  pgvector                │
-└──────────────────┘  └───────────────────┘  │  ─ skill embeddings      │
-                                             └──────────────────────────┘
+┌──────────────────┐  ┌───────────────────┐  ┌──────────────────────────────┐
+│  OpenAI API      │  │  Python Services  │  │  Azure PostgreSQL             │
+│  ──────────────  │  │  embed.py         │  │  truepath-db · PG 16         │
+│  gpt-4o          │  │  retriever.py     │  │  ─ questions · session_*     │
+│  gpt-4.1-mini    │  │  indexer.py       │  │  pgvector (HNSW)             │
+│  embedding-3-sm  │  │  (offline batch)  │  │  ─ rag_documents · rag_chunks│
+└──────────────────┘  └───────────────────┘  └──────────────────────────────┘
 
 Offline (batch job, not on request path):
-  rag/indexer.py → reads source data → embed_batch() → UPSERT into Supabase pgvector
+  rag/indexer.py → reads source data → embed_batch() → UPSERT into Azure PostgreSQL pgvector
 ```
 
 ### Layers
@@ -76,13 +76,15 @@ Offline (batch job, not on request path):
 
 **Backend (Express)** — central orchestrator. Validates all input, calls OpenAI for generation, calls Python services for embeddings and retrieval, assembles responses.
 
-**Python Services** — owns the embedding pipeline. Two sub-modules:
+**Python Services** — owns the embedding and RAG retrieval pipeline. Two sub-modules:
 - `embeddings/` — wraps OpenAI embeddings API; called by Express via HTTP at request time (`embed_text`) and by the indexer offline (`embed_batch`)
-- `rag/` — `indexer.py` is an offline batch job that embeds source data and upserts into Supabase pgvector; no retriever on the request path
+- `rag/` — `indexer.py` is an offline batch job that embeds source data and upserts into Azure PostgreSQL pgvector; `retriever.py` is called by Express via HTTP on every `/pathways/recommend` request to run the `match_rag_chunks` cosine similarity function
 
-**Supabase** — single persistence platform. Two logical concerns:
+**Azure Database for PostgreSQL** — single persistence platform. Four logical concerns:
 - `questions` + `question_choices` tables — seed question corpus; read by `/intake/questions`
-- `skill_embeddings` pgvector table — skill corpus with 1536-dim embeddings; queried by `rag.ts` on every `/pathways/recommend` request via cosine similarity search
+- `sessions` + `session_responses` tables — session lifecycle and intake answer storage
+- `session_skills` + `session_pathways` tables — skills and pathway results per session
+- `rag_documents` + `rag_chunks` tables — RAG corpus with 1536-dim embeddings (pgvector HNSW index); queried via `match_rag_chunks` stored function on every `/pathways/recommend` request
 
 ---
 
@@ -90,31 +92,35 @@ Offline (batch job, not on request path):
 
 ```
 [1]  Browser → Express          GET /intake/questions
-[2]  Express → Supabase         SELECT questions + choices ORDER BY display_order
+[2]  Express → Azure PostgreSQL  SELECT questions + choices ORDER BY display_order
 [3]  Express → Browser          Return Question[]
 
 [4]  Browser → Express          POST /intake/followup  { answers: IntakeAnswer[] (7 total) }
-[5]  Express → LLM              System prompt + 7 Q+R → generate 3 follow-up questions with answer choices
-[6]  LLM → Express              FollowupResponse { questions: FollowupQuestion[] }  ← batch of 3, each with choices
-[7]  Express → Browser          FollowupResponse
+[5]  Express → Azure PostgreSQL  INSERT session_responses (7 rows); UPDATE sessions.status
+[6]  Express → LLM              System prompt + 7 Q+R → generate 3 follow-up questions with choices
+[7]  LLM → Express              FollowupResponse { questions: FollowupQuestion[] }  ← batch of 3
+[8]  Express → Azure PostgreSQL  INSERT followup questions + choices
+[9]  Express → Browser          FollowupResponse
 
-[8]  Browser → Express          POST /skills/infer  { answers: IntakeAnswer[] (10 total) }
-[9]  Express → LLM              System prompt + all 10 Q+R → generate skill candidates
-[10] LLM → Express              6 high-confidence + 3 low-confidence Skill[]
-[11] Express → Browser          SkillsResponse { skills, rationale }
+[10] Browser → Express          POST /skills/infer  { sessionId }
+[11] Express → LLM              System prompt + all 10 Q+R → generate skill candidates
+[12] LLM → Express              6 high-confidence + 3 low-confidence Skill[]
+[13] Express → Azure PostgreSQL  INSERT session_skills; UPDATE sessions.status
+[14] Express → Browser          SkillsResponse { skills, rationale }
 
-[12] Browser → Express          POST /pathways/recommend  { confirmedSkillIds, answers }
-[13] Express → Python embed     embed_text(skill query)
-[14] Python → Express           query vector (float[1536])
-[15] Express → Supabase         pgvector cosine_similarity(queryVector, skill_embeddings, top_k=10)
-[16] Supabase → Express         top-k skill/pathway matches with similarity scores
-[17] Express → LLM              matches + constraints + system prompt → rank 3 pathways
-[18] LLM → Express              Pathway[] + limitationsSummary
-[19] Express → Browser          PathwayResponse
+[15] Browser → Express          POST /pathways/recommend  { sessionId }
+[16] Express → Python /search   { query, top_k: 50, threshold: 0 }
+[17] Python → Azure PostgreSQL  SELECT match_rag_chunks(embedding, threshold, top_k) — cosine similarity
+[18] Azure PostgreSQL → Python  top-k rag_chunks with similarity scores
+[19] Python → Express           RagChunk[] with similarity scores
+[20] Express → LLM              top PDF pathway docs + supporting table rows + system prompt
+[21] LLM → Express              Pathway[] + limitationsSummary
+[22] Express → Azure PostgreSQL  INSERT session_pathways (JSONB); UPDATE sessions.status
+[23] Express → Browser          PathwayResponse
 
 ```
 
-**Two-stage LLM design rationale:** Generation (steps 5, 9, 17) uses the chat model for open-ended reasoning. Embedding (steps 13–14) uses the embeddings model for structured similarity; similarity search (steps 15–16) runs as a pgvector SQL query in Supabase. These are different tasks with different execution surfaces — separating them keeps prompts clean and allows independent model upgrades.
+**Two-stage LLM design rationale:** Generation (steps 6, 11, 20) uses the chat model for open-ended reasoning. Embedding and retrieval (steps 16–19) run inside the Python service, which calls OpenAI embeddings then queries Azure PostgreSQL via `match_rag_chunks` (a stored SQL function using pgvector HNSW cosine similarity). These are different tasks with different execution surfaces — separating them keeps prompts clean and allows independent model upgrades.
 
 **Adaptive questioning:** The LLM is invoked at step 5 (after 7 answers) to generate contextual follow-ups before final skill inference. This keeps the seed question set small and static (easy to update in data) while personalizing depth per user.
 
@@ -345,12 +351,11 @@ errorMiddleware     → catch ApiError + unhandled, return { error: { code, mess
 
 | Module | Responsibility |
 |--------|---------------|
-| `llm.ts` | Abstracts the chat LLM provider. Accepts typed prompt payloads, returns typed responses, handles `ai_error` normalization. Provider is selected at startup via `LLM_PROVIDER`; all callers are provider-agnostic. |
-| `embeddings.ts` | Calls Python `embed.py` via HTTP. Accepts a text string, returns `number[1536]`. |
-| `rag.ts` | Queries Supabase pgvector via the JS SDK. Accepts a query vector and top-k, issues a cosine similarity search, returns ranked skill/pathway matches with scores. |
-| `db.ts` | Supabase JS SDK client. Handles seed question reads (`questions`, `question_choices`). |
+| `llm.ts` | Abstracts the chat LLM provider. Accepts typed prompt payloads, returns typed responses, handles `ai_error` normalization. |
+| `rag.ts` | Calls Python `/search` via HTTP. Accepts a query string, delegates embedding + pgvector similarity search to the Python service, returns `RagChunk[]` with similarity scores. |
+| `pathways.ts` | Orchestrates the pathway recommendation flow: builds a search query from session QA + confirmed skills, calls `rag.ts`, selects top PDF documents, builds LLM context, calls OpenAI, validates response. |
 
-`embed.py` is called over HTTP so it can be scaled and restarted independently. The Express process does not load Python.
+`rag.ts` calls the Python service over HTTP so embedding and retrieval can be scaled and restarted independently. The Express process does not load Python or any ML library.
 
 ### Backend Types
 
@@ -378,38 +383,43 @@ services/
 │
 ├── rag/
 │   ├── __init__.py
-│   └── indexer.py      # build_index(source_dir) → None  [offline batch job]
+│   ├── indexer.py      # build_index(source_dir) → dict  [offline batch job]
+│   └── retriever.py    # retrieve(query, top_k, threshold) → list[dict]
 │
+├── main.py             # FastAPI app — /health · /embed · /search · /ingest
+├── run_indexer.py      # CLI entrypoint for the offline indexer
 ├── requirements.txt
 └── .env.example
 ```
 
-`retriever.py` is not present — retrieval is handled by `rag.ts` in Express via a direct Supabase pgvector query.
-
 ### RAG Indexer (offline batch job)
 
-`rag/indexer.py` is not on the request path. It runs once (and is re-run when the skills corpus is updated) to embed source data and upsert into Supabase pgvector.
+`rag/indexer.py` is not on the request path. It runs once (and is re-run when the RAG corpus is updated) to embed source data and upsert into Azure PostgreSQL pgvector.
 
 ```
-source data (CSV, PDF, Excel) → embed_batch() → Supabase UPSERT
-  skill_embeddings(skill_id, skill_text, embedding vector(1536), metadata JSONB)
+source data (PDF, Excel) → embed_batch() → Azure PostgreSQL UPSERT
+  rag_documents(file_name, file_type, source_path, chunk_count)
+  rag_chunks(document_id, chunk_index, content, embedding vector(1536), metadata JSONB)
 ```
 
-Uses `supabase-py` for the upsert. For MVP corpus (< 1000 entries), no index tuning is needed — pgvector's default scan is adequate. If corpus grows past ~100k entries, add an HNSW index on the `embedding` column.
+Uses `psycopg2` with `register_vector` for pgvector type support. After initial indexing, run `008_hnsw_index.sql` to build the HNSW index (`m=16, ef_construction=64`) for fast approximate nearest-neighbour search.
 
-### Vector Retrieval (request path — Express, not Python)
+### Vector Retrieval (request path — Python service)
 
-Retrieval runs inside Express via `rag.ts` using the Supabase JS SDK. No Python service call on the retrieval path. The query:
+Retrieval runs inside `rag/retriever.py`, called by Express via HTTP POST `/search`. The stored function:
 
 ```sql
-SELECT skill_id, skill_text, metadata,
-  1 - (embedding <=> $1::vector) AS similarity
-FROM skill_embeddings
-ORDER BY embedding <=> $1::vector
-LIMIT $2;
+SELECT rc.id, rc.document_id, rc.chunk_index, rc.content, rc.metadata,
+       rd.file_name,
+       1 - (rc.embedding <=> query_embedding) AS similarity
+FROM rag_chunks rc
+JOIN rag_documents rd ON rd.id = rc.document_id
+WHERE 1 - (rc.embedding <=> query_embedding) >= match_threshold
+ORDER BY rc.embedding <=> query_embedding
+LIMIT match_count;
 ```
 
-Express calls `embeddings.ts` → Python `embed.py` first (step [13]–[14]) to get the query vector, then issues the pgvector query directly (step [15]–[16]).
+Express calls `rag.ts` → Python `/search` (step [16]) which embeds the query and runs `match_rag_chunks` in Azure PostgreSQL (steps [17]–[18]).
 
 ### Embeddings
 
@@ -467,23 +477,24 @@ All environment variables are `NEXT_PUBLIC_` prefixed and build-time only. No se
 ```
 PORT                    4000
 OPENAI_API_KEY
-LLM_PROVIDER            prod | dev
-LLM_MODEL               gpt-5.4 | gpt-oss
+OPENAI_MODEL            gpt-4o
+OPENAI_FOLLOWUP_MODEL   gpt-4.1-mini
 OPENAI_EMBEDDING_MODEL  text-embedding-3-small
 PYTHON_SERVICES_URL     http://localhost:8000
-SUPABASE_URL            https://<project>.supabase.co
-SUPABASE_SERVICE_KEY    <service_role_key>
+DATABASE_URL            postgresql://<user>:<pass>@truepath-db.postgres.database.azure.com:5432/postgres?sslmode=require
 CORS_ORIGIN             http://localhost:3000
 ```
 
 ### Python Services (`.env`)
 
 ```
+PORT                    4000
 OPENAI_API_KEY
+OPENAI_MODEL            gpt-4o
+OPENAI_FOLLOWUP_MODEL   gpt-4.1-mini
 OPENAI_EMBEDDING_MODEL  text-embedding-3-small
-SUPABASE_URL            https://<project>.supabase.co
-SUPABASE_SERVICE_KEY    <service_role_key>
-SKILLS_DATA_PATH        ./data/**
+DATABASE_URL            postgresql://<user>:<pass>@truepath-db.postgres.database.azure.com:5432/postgres?sslmode=require
+PYTHON_SERVICES_URL     http://localhost:8000
 ```
 
 ---
@@ -529,8 +540,7 @@ The `sessionId` UUID generated client-side flows through every analytics event a
 | Concern | Practice |
 |---------|---------|
 | **`OPENAI_API_KEY`** | Backend `.env` only. Never referenced in Next.js code or any `NEXT_PUBLIC_` variable. |
-| **`SUPABASE_SERVICE_KEY`** | Backend `.env` and Python `.env` only. The service role key bypasses Supabase RLS — it must never be exposed to the browser or logged. |
-| **`SUPABASE_URL`** | Not a secret but still server-side only — the anon key pattern is not used since all Supabase access is from Express or the offline indexer, not the browser. |
+| **`DATABASE_URL`** | Backend `.env` and Python `.env` only. Contains credentials for Azure PostgreSQL — must never be logged or exposed to the browser. Stored in Azure Key Vault (`DATABASE-URL`) for staging/production deployments; injected via Container Apps secret reference. |
 | **Frontend env** | All `NEXT_PUBLIC_` vars are non-secret (API base URL, analytics toggle, env flag). No key of any kind appears in the browser bundle. |
 
 ### Network
@@ -538,8 +548,8 @@ The `sessionId` UUID generated client-side flows through every analytics event a
 | Concern | Practice |
 |---------|---------|
 | **CORS** | Express `cors()` restricts `Access-Control-Allow-Origin` to `CORS_ORIGIN` (the Next.js origin) in production. Wildcard CORS is never used. |
-| **Python service isolation** | `embed.py` is not publicly routable. It listens on `PYTHON_SERVICES_URL` (default `localhost:8000`) — accessible only from the Express process. No ingress rule exposes it. |
-| **Express → Python auth** | Express attaches a shared `X-Internal-Token` header on every call to the Python embed service. The Python service rejects requests missing this header. |
+| **Python service isolation** | The Python service is not publicly routable. It listens on `PYTHON_SERVICES_URL` (default `localhost:8000`) — accessible only from the Express process. No ingress rule exposes it. |
+| **Azure PostgreSQL TLS** | All connections use `sslmode=require` (Node `pg.Pool`: `ssl: { rejectUnauthorized: true }`; Python psycopg2: connection string param). Azure PostgreSQL uses a public CA certificate — no self-signed cert handling needed. |
 
 ### HTTP Security Headers
 
@@ -564,13 +574,13 @@ No authentication means rate limiting is the primary abuse control for AI endpoi
 
 Rate limit headers (`RateLimit-*`) are returned to the client. Exceeded limits return `429` with a retryable `AppError`.
 
-### Supabase Access
+### Database Access
 
 | Concern | Practice |
 |---------|---------|
-| **Parameterized queries** | All Supabase JS SDK calls use the SDK's query builder — no raw SQL string concatenation. The pgvector similarity query uses `$1::vector` parameterized binding. |
-| **Service key scope** | `db.ts` only reads `questions` and `question_choices`. `rag.ts` only reads `skill_embeddings`. No Express route writes to Supabase. Write access exists only in `indexer.py` (offline). |
-| **No client-side Supabase** | The Supabase JS SDK is never imported in frontend code. The browser has no Supabase credentials and cannot query Supabase directly. |
+| **Parameterized queries** | All queries use `pg.Pool` parameterized binding (`$1`, `$2`, …) in Node.js and psycopg2 `%s` placeholders in Python. No raw SQL string concatenation anywhere. |
+| **Repository pattern** | Express routes never issue SQL directly — all DB access goes through `src/repositories/`. Each repository owns one table domain. |
+| **No client-side DB** | The browser has no database credentials and cannot connect to Azure PostgreSQL. All queries originate from Express or the Python service (server-side only). |
 
 ### Error Handling
 
@@ -584,7 +594,7 @@ Rate limit headers (`RateLimit-*`) are returned to the client. Exceeded limits r
 
 - `package-lock.json` and `requirements.txt` are committed with pinned versions. Floating ranges (`^`, `~`) are resolved and locked at install time.
 - `npm audit` and `pip-audit` run in CI. Builds fail on high-severity findings.
-- The OpenAI SDK, Supabase SDK, and Zod are the highest-risk dependencies given their API surface. Pin to minor version, review changelogs before upgrading.
+- The OpenAI SDK, `pg`, `psycopg2-binary`, `pgvector`, and Zod are the highest-risk dependencies given their API surface. Pin to minor version, review changelogs before upgrading.
 
 ---
 

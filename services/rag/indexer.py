@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 def _connect():
     conn = psycopg2.connect(os.environ["DATABASE_URL"])
-    register_vector(conn)
     conn.autocommit = True
+    register_vector(conn)
     return conn
 
 

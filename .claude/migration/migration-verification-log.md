@@ -117,7 +117,23 @@
 ---
 
 ## Phase 4 — RAG Re-indexing
-*(Pending — run after Phase 1 migrations verified)*
+
+### Steps Completed
+| Step | Status | Notes |
+|---|---|---|
+| Run indexer (local mode) | DONE | 13 files, 78 chunks, 0 errors |
+| Apply `008_hnsw_index.sql` | DONE | `CREATE INDEX USING hnsw` on `rag_chunks.embedding` |
+| Retriever smoke test | DONE | `match_rag_chunks` returns 3 results, top similarity 0.576 for "nursing career pathway healthcare" |
+
+### Verification SQL Results
+| Query | Expected | Actual |
+|---|---|---|
+| `SELECT COUNT(*) FROM rag_documents` | 13 | 13 ✓ |
+| `SELECT COUNT(*) FROM rag_chunks` | 78 | 78 ✓ |
+
+### Learnings — Phase 4
+- **LN-20:** `conn.autocommit = True` must be set BEFORE `register_vector(conn)`. `register_vector` issues a query that starts a transaction; setting `autocommit` inside an open transaction raises `psycopg2.ProgrammingError: set_session cannot be used inside a transaction`.
+- **LN-21:** PDF chunks are extracted as a single chunk per file with the current `pdf_parser`. This is a pre-existing limitation — each PDF produces 1 chunk. Excel files chunk by row (17-18 chunks each). RAG quality for PDF content may be limited until the parser is improved.
 
 ## Phase 5 — End-to-End Verification
 *(Pending)*

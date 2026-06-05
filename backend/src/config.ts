@@ -23,9 +23,8 @@ export const config = {
     skillsModel: optional('OPENAI_SKILLS_MODEL', 'gpt-4.1-mini'),
     embeddingModel: optional('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small'),
   },
-  supabase: {
-    url: requireEnv('SUPABASE_URL'),
-    serviceKey: requireEnv('SUPABASE_SERVICE_KEY'),
+  database: {
+    url: requireEnv('DATABASE_URL'),
   },
   pythonServicesUrl: optional('PYTHON_SERVICES_URL', 'http://localhost:8000'),
 } as const;

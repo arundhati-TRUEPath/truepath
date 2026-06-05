@@ -70,11 +70,10 @@ $KV_NAME    = $out.kv_name
 $MI_ID      = $out.identity_resource_id
 $ENV_DOMAIN = $out.env_default_domain
 
-$KV_OPENAI_URI    = $out.kv_secret_uris.'OPENAI-API-KEY'
-$KV_SB_URL_URI    = $out.kv_secret_uris.'SUPABASE-URL'
-$KV_SB_KEY_URI    = $out.kv_secret_uris.'SUPABASE-SERVICE-KEY'
+$KV_OPENAI_URI = $out.kv_secret_uris.'OPENAI-API-KEY'
+$KV_DB_URL_URI = $out.kv_secret_uris.'DATABASE-URL'
 
-foreach ($v in @($SUB_ID,$RG,$ACR_SERVER,$ENV_NAME,$KV_NAME,$MI_ID,$ENV_DOMAIN,$KV_OPENAI_URI,$KV_SB_URL_URI,$KV_SB_KEY_URI)) {
+foreach ($v in @($SUB_ID,$RG,$ACR_SERVER,$ENV_NAME,$KV_NAME,$MI_ID,$ENV_DOMAIN,$KV_OPENAI_URI,$KV_DB_URL_URI)) {
     if (-not $v -or $v -like "<pending*") { Die "deploy-outputs.json has unpopulated values — re-run deploy-phase2.ps1" }
 }
 
@@ -89,13 +88,11 @@ $CORS_ORIGIN    = $FRONTEND_URL
 # Shared secret refs (same set on python and backend)
 $COMMON_SECRETS = @(
     "openai-key=keyvaultref:$KV_OPENAI_URI,identityref:$MI_ID",
-    "supabase-url=keyvaultref:$KV_SB_URL_URI,identityref:$MI_ID",
-    "supabase-key=keyvaultref:$KV_SB_KEY_URI,identityref:$MI_ID"
+    "database-url=keyvaultref:$KV_DB_URL_URI,identityref:$MI_ID"
 )
 $COMMON_SECRET_ENVVARS = @(
     "OPENAI_API_KEY=secretref:openai-key",
-    "SUPABASE_URL=secretref:supabase-url",
-    "SUPABASE_SERVICE_KEY=secretref:supabase-key"
+    "DATABASE_URL=secretref:database-url"
 )
 
 # ── Helper: deploy or update a container app ──────────────────────────────────

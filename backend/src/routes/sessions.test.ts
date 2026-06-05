@@ -1,7 +1,7 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app';
-import { db } from '../db/client';
+import { pool } from '../db/client';
 
 const app = createApp();
 
@@ -10,9 +10,10 @@ describe('POST /api/v1/sessions/start', () => {
 
   afterAll(async () => {
     if (createdIds.length > 0) {
-      await db.from('session_responses').delete().in('session_id', createdIds);
-      await db.from('sessions').delete().in('id', createdIds);
+      await pool.query('DELETE FROM session_responses WHERE session_id = ANY($1::uuid[])', [createdIds]);
+      await pool.query('DELETE FROM sessions WHERE id = ANY($1::uuid[])', [createdIds]);
     }
+    await pool.end();
   });
 
   it('returns 201 with a UUID sessionId', async () => {
@@ -42,12 +43,11 @@ describe('POST /api/v1/sessions/start', () => {
     const sessionId = res.body.data.sessionId as string;
     createdIds.push(sessionId);
 
-    const { data } = await db
-      .from('sessions')
-      .select('id, status')
-      .eq('id', sessionId)
-      .single();
+    const { rows } = await pool.query<{ id: string; status: string }>(
+      'SELECT id, status FROM sessions WHERE id = $1',
+      [sessionId],
+    );
 
-    expect(data).toMatchObject({ id: sessionId, status: 'in_progress' });
+    expect(rows[0]).toMatchObject({ id: sessionId, status: 'in_progress' });
   });
 });

@@ -1,4 +1,4 @@
-import { db } from '../db/client';
+import { pool } from '../db/client';
 import { DatabaseError } from '../errors/AppError';
 
 export interface CareerStep {
@@ -47,16 +47,14 @@ interface PathwayRow {
 }
 
 export async function getPathways(sessionId: string): Promise<SavedPathways | null> {
-  const { data, error } = await db
-    .from('session_pathways')
-    .select('pathways, limitations, source_files')
-    .eq('session_id', sessionId)
-    .maybeSingle();
-
-  if (error) throw new DatabaseError(error.message);
-  if (!data) return null;
-
-  const row = data as PathwayRow;
+  const { rows } = await pool.query<PathwayRow>(
+    `SELECT pathways, limitations, source_files
+     FROM session_pathways
+     WHERE session_id = $1`,
+    [sessionId],
+  );
+  if (rows.length === 0) return null;
+  const row = rows[0];
   return {
     pathways: row.pathways,
     limitations: row.limitations,
@@ -65,17 +63,19 @@ export async function getPathways(sessionId: string): Promise<SavedPathways | nu
 }
 
 export async function savePathways(sessionId: string, saved: SavedPathways): Promise<void> {
-  const row = {
-    session_id: sessionId,
-    pathways: saved.pathways,
-    limitations: saved.limitations,
-    source_files: saved.sourceFiles,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { error } = await db
-    .from('session_pathways')
-    .upsert(row, { onConflict: 'session_id' });
-
-  if (error) throw new DatabaseError(error.message);
+  await pool.query(
+    `INSERT INTO session_pathways (session_id, pathways, limitations, source_files, updated_at)
+     VALUES ($1, $2, $3, $4, now())
+     ON CONFLICT (session_id) DO UPDATE
+       SET pathways     = EXCLUDED.pathways,
+           limitations  = EXCLUDED.limitations,
+           source_files = EXCLUDED.source_files,
+           updated_at   = now()`,
+    [
+      sessionId,
+      JSON.stringify(saved.pathways),
+      JSON.stringify(saved.limitations),
+      saved.sourceFiles,
+    ],
+  );
 }

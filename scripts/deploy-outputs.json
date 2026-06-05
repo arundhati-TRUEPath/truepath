@@ -1,55 +1,38 @@
 {
-  "_status": "COMPLETE — populated by deploy-phase2.ps1 run 2026-06-01",
-  "_last_updated": "2026-06-01",
+  "_status": "UPDATED — populated by deploy-phase2.ps1 run 2026-06-01, updated for Azure PostgreSQL migration 2026-06-04",
+  "_last_updated": "2026-06-04",
 
   "subscription_id": "b84e832c-ee7f-4b32-90d0-de721fed1a30",
   "resource_group": "Gitlab_TRUE_Path_rg",
   "location": "eastus",
 
-  "acr": {
-    "name": "truepathacr",
-    "login_server": "truepathacr.azurecr.io",
-    "sku": "Basic"
+  "acr_name": "truepathacr",
+  "acr_login_server": "truepathacr.azurecr.io",
+
+  "law_resource_id": "/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.OperationalInsights/workspaces/truepath-logs",
+  "law_customer_id": "2375b29f-f133-4f4c-99e6-32292819832d",
+
+  "env_name": "truepath-staging-env",
+  "env_resource_id": "/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.App/managedEnvironments/truepath-staging-env",
+  "env_default_domain": "ashybush-4cbf3768.eastus.azurecontainerapps.io",
+
+  "kv_name": "truepath-kv-stg",
+  "kv_uri": "https://truepath-kv-stg.vault.azure.net/",
+  "kv_secret_uris": {
+    "OPENAI-API-KEY": "https://truepath-kv-stg.vault.azure.net/secrets/OPENAI-API-KEY",
+    "DATABASE-URL":   "https://truepath-kv-stg.vault.azure.net/secrets/DATABASE-URL"
   },
 
-  "log_analytics": {
-    "name": "truepath-logs",
-    "resource_id": "/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.OperationalInsights/workspaces/truepath-logs",
-    "customer_id": "2375b29f-f133-4f4c-99e6-32292819832d"
-  },
+  "storage_account_name": "truepathstorage",
+  "blob_container": "rag-data",
+  "storage_account_id": "/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.Storage/storageAccounts/truepathstorage",
 
-  "container_apps_env": {
-    "name": "truepath-staging-env",
-    "resource_id": "/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.App/managedEnvironments/truepath-staging-env",
-    "default_domain": "ashybush-4cbf3768.eastus.azurecontainerapps.io"
-  },
+  "identity_name": "truepath-staging-id",
+  "identity_resource_id": "/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourcegroups/Gitlab_TRUE_Path_rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/truepath-staging-id",
+  "identity_principal_id": "21948419-41cf-4270-bd87-41d8f79a8002",
+  "identity_client_id": "b842b0ab-1185-4403-98cf-6b1df592accf",
 
-  "key_vault": {
-    "name": "truepath-kv-stg",
-    "uri": "https://truepath-kv-stg.vault.azure.net/",
-    "secret_uris": {
-      "OPENAI-API-KEY":       "https://truepath-kv-stg.vault.azure.net/secrets/OPENAI-API-KEY",
-      "SUPABASE-URL":         "https://truepath-kv-stg.vault.azure.net/secrets/SUPABASE-URL",
-      "SUPABASE-SERVICE-KEY": "https://truepath-kv-stg.vault.azure.net/secrets/SUPABASE-SERVICE-KEY"
-    }
-  },
-
-  "storage": {
-    "account_name": "truepathstorage",
-    "blob_container": "rag-data",
-    "resource_id": "/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourceGroups/Gitlab_TRUE_Path_rg/providers/Microsoft.Storage/storageAccounts/truepathstorage"
-  },
-
-  "managed_identity": {
-    "name": "truepath-staging-id",
-    "resource_id": "/subscriptions/b84e832c-ee7f-4b32-90d0-de721fed1a30/resourcegroups/Gitlab_TRUE_Path_rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/truepath-staging-id",
-    "principal_id": "21948419-41cf-4270-bd87-41d8f79a8002",
-    "client_id": "b842b0ab-1185-4403-98cf-6b1df592accf"
-  },
-
-  "role_assignments": {
-    "AcrPull": "assigned to truepath-staging-id on truepathacr scope",
-    "KeyVaultSecretsUser": "assigned to truepath-staging-id via access policy on truepath-kv-stg",
-    "StorageBlobDataContributor": "assigned to truepath-staging-id on truepathstorage scope"
-  }
+  "db_server_name": "truepath-db",
+  "db_host": "truepath-db.postgres.database.azure.com",
+  "db_location": "northcentralus"
 }

@@ -1,18 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app';
-import { db } from '../db/client';
+import { pool } from '../db/client';
 
 const app = createApp();
 
-const SEED_IDS = ['situation', 'education', 'timeframe', 'schedule', 'environment', 'support', 'location'];
-
-function buildAnswers(sessionId: string) {
-  return {
-    sessionId,
-    answers: SEED_IDS.map((id) => ({ questionId: id, optionIds: ['opt_test'] })),
-  };
-}
+afterAll(async () => {
+  await pool.end();
+});
 
 describe('GET /api/v1/intake/questions', () => {
   it('returns 200 with 7 seed questions', async () => {
@@ -44,16 +39,21 @@ describe('GET /api/v1/intake/questions', () => {
 
 describe('POST /api/v1/intake/followup', () => {
   let sessionId: string;
+  let answers: Array<{ questionId: string; optionIds: string[] }>;
 
   beforeAll(async () => {
-    const res = await request(app).post('/api/v1/sessions/start').expect(201);
-    sessionId = res.body.data.sessionId as string;
+    const qRes = await request(app).get('/api/v1/intake/questions').expect(200);
+    const questions = qRes.body.data as Array<{ id: string; options: Array<{ id: string }> }>;
+    answers = questions.map((q) => ({ questionId: q.id, optionIds: [q.options[0].id] }));
+
+    const sRes = await request(app).post('/api/v1/sessions/start').expect(201);
+    sessionId = sRes.body.data.sessionId as string;
   });
 
   afterAll(async () => {
     if (sessionId) {
-      await db.from('session_responses').delete().eq('session_id', sessionId);
-      await db.from('sessions').delete().eq('id', sessionId);
+      await pool.query('DELETE FROM session_responses WHERE session_id = $1', [sessionId]);
+      await pool.query('DELETE FROM sessions WHERE id = $1', [sessionId]);
     }
   });
 
@@ -69,7 +69,7 @@ describe('POST /api/v1/intake/followup', () => {
   it('returns 400 when sessionId is not a UUID', async () => {
     const res = await request(app)
       .post('/api/v1/intake/followup')
-      .send({ sessionId: 'not-a-uuid', answers: SEED_IDS.map((id) => ({ questionId: id, optionIds: ['x'] })) })
+      .send({ sessionId: 'not-a-uuid', answers: answers.map((a) => ({ ...a })) })
       .expect(400);
 
     expect(res.body.error).toMatchObject({ code: 'validation_error' });
@@ -78,17 +78,17 @@ describe('POST /api/v1/intake/followup', () => {
   it('returns 400 when fewer than 7 answers are provided', async () => {
     const res = await request(app)
       .post('/api/v1/intake/followup')
-      .send({ sessionId, answers: [{ questionId: 'situation', optionIds: ['opt_test'] }] })
+      .send({ sessionId, answers: [answers[0]] })
       .expect(400);
 
     expect(res.body.error).toMatchObject({ code: 'validation_error' });
   });
 
   it('returns 400 when an answer has no optionIds', async () => {
-    const answers = SEED_IDS.map((id) => ({ questionId: id, optionIds: [] }));
+    const emptyOptions = answers.map((a) => ({ questionId: a.questionId, optionIds: [] }));
     const res = await request(app)
       .post('/api/v1/intake/followup')
-      .send({ sessionId, answers })
+      .send({ sessionId, answers: emptyOptions })
       .expect(400);
 
     expect(res.body.error).toMatchObject({ code: 'validation_error' });
@@ -97,7 +97,7 @@ describe('POST /api/v1/intake/followup', () => {
   it('saves responses and returns 3 followup questions', async () => {
     const res = await request(app)
       .post('/api/v1/intake/followup')
-      .send(buildAnswers(sessionId))
+      .send({ sessionId, answers })
       .expect(200);
 
     expect(res.body.error).toBeNull();
@@ -115,21 +115,18 @@ describe('POST /api/v1/intake/followup', () => {
   });
 
   it('persists 7 session_responses rows in the database', async () => {
-    const { data } = await db
-      .from('session_responses')
-      .select('id')
-      .eq('session_id', sessionId);
-
-    expect(data).toHaveLength(7);
+    const { rows } = await pool.query<{ id: string }>(
+      'SELECT id FROM session_responses WHERE session_id = $1',
+      [sessionId],
+    );
+    expect(rows).toHaveLength(7);
   });
 
   it('sets session status to seed_complete', async () => {
-    const { data } = await db
-      .from('sessions')
-      .select('status')
-      .eq('id', sessionId)
-      .single();
-
-    expect(data).toMatchObject({ status: 'seed_complete' });
+    const { rows } = await pool.query<{ status: string }>(
+      'SELECT status FROM sessions WHERE id = $1',
+      [sessionId],
+    );
+    expect(rows[0]).toMatchObject({ status: 'seed_complete' });
   });
 });

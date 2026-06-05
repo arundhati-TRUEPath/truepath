@@ -85,11 +85,10 @@ $ENV_NAME       = $out.env_name
 $MI_ID          = $out.identity_resource_id
 $SA_NAME        = $out.storage_account_name
 $BLOB_CTR       = $out.blob_container
-$KV_OPENAI_URI  = $out.kv_secret_uris.'OPENAI-API-KEY'
-$KV_SB_URL_URI  = $out.kv_secret_uris.'SUPABASE-URL'
-$KV_SB_KEY_URI  = $out.kv_secret_uris.'SUPABASE-SERVICE-KEY'
+$KV_OPENAI_URI = $out.kv_secret_uris.'OPENAI-API-KEY'
+$KV_DB_URL_URI = $out.kv_secret_uris.'DATABASE-URL'
 
-foreach ($v in @($SUB_ID,$RG,$ACR_SERVER,$ENV_NAME,$MI_ID,$SA_NAME,$BLOB_CTR,$KV_OPENAI_URI,$KV_SB_URL_URI,$KV_SB_KEY_URI)) {
+foreach ($v in @($SUB_ID,$RG,$ACR_SERVER,$ENV_NAME,$MI_ID,$SA_NAME,$BLOB_CTR,$KV_OPENAI_URI,$KV_DB_URL_URI)) {
     if (-not $v -or $v -like "<pending*") { Die "deploy-outputs.json has unpopulated values — re-run Phase 2." }
 }
 
@@ -136,12 +135,10 @@ if ($LASTEXITCODE -eq 0 -and $jobExistingRaw) {
         --args              "run_indexer.py" `
         --secrets `
             "openai-key=keyvaultref:$KV_OPENAI_URI,identityref:$MI_ID" `
-            "supabase-url=keyvaultref:$KV_SB_URL_URI,identityref:$MI_ID" `
-            "supabase-key=keyvaultref:$KV_SB_KEY_URI,identityref:$MI_ID" `
+            "database-url=keyvaultref:$KV_DB_URL_URI,identityref:$MI_ID" `
         --env-vars `
             "OPENAI_API_KEY=secretref:openai-key" `
-            "SUPABASE_URL=secretref:supabase-url" `
-            "SUPABASE_SERVICE_KEY=secretref:supabase-key" `
+            "DATABASE_URL=secretref:database-url" `
             "STORAGE_MODE=azure" `
             "AZURE_STORAGE_ACCOUNT_NAME=$SA_NAME" `
             "AZURE_STORAGE_CONTAINER=$BLOB_CTR" `

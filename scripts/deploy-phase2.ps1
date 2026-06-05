@@ -136,9 +136,8 @@ Log "Using .env file: $ENV_FILE"
 # ── Read secrets from backend/.env ───────────────────────────────────────────
 Log "Reading secrets from backend/.env..."
 $secrets = @{
-    "OPENAI-API-KEY"       = Read-EnvValue $ENV_FILE "OPENAI_API_KEY"
-    "SUPABASE-URL"         = Read-EnvValue $ENV_FILE "SUPABASE_URL"
-    "SUPABASE-SERVICE-KEY" = Read-EnvValue $ENV_FILE "SUPABASE_SERVICE_KEY"
+    "OPENAI-API-KEY" = Read-EnvValue $ENV_FILE "OPENAI_API_KEY"
+    "DATABASE-URL"   = Read-EnvValue $ENV_FILE "DATABASE_URL"
 }
 
 # GITHUB-PAT is optional — needed by Phase 3 to pull source from GitHub.

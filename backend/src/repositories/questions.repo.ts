@@ -1,4 +1,4 @@
-import { db } from '../db/client';
+import { pool } from '../db/client';
 import { DatabaseError } from '../errors/AppError';
 import type { Question } from '../types/intake';
 import type { FollowupQuestionInsert } from '../services/llm';
@@ -18,49 +18,56 @@ interface QuestionRow {
 }
 
 export async function getAllSeedQuestions(): Promise<Question[]> {
-  const { data, error } = await db
-    .from('questions')
-    .select('id, title, hint, is_multi, layout, display_order, question_choices(option_key, label, display_order)')
-    .eq('source', 'seed')
-    .order('display_order', { ascending: true });
+  const { rows } = await pool.query<QuestionRow>(
+    `SELECT
+       q.id, q.title, q.hint, q.is_multi, q.layout, q.display_order,
+       json_agg(
+         json_build_object(
+           'option_key', qc.option_key,
+           'label', qc.label,
+           'display_order', qc.display_order
+         ) ORDER BY qc.display_order
+       ) AS question_choices
+     FROM questions q
+     JOIN question_choices qc ON qc.question_id = q.id
+     WHERE q.source = 'seed'
+     GROUP BY q.id, q.title, q.hint, q.is_multi, q.layout, q.display_order
+     ORDER BY q.display_order`,
+  );
 
-  if (error) throw new DatabaseError(error.message);
-  if (!data) return [];
-
-  return (data as QuestionRow[]).map((row) => ({
+  return rows.map((row) => ({
     id: row.id,
     title: row.title,
     hint: row.hint,
     ...(row.is_multi ? { multi: true } : {}),
     layout: row.layout,
-    options: [...row.question_choices]
-      .sort((a, b) => a.display_order - b.display_order)
-      .map((c) => ({ id: c.option_key, label: c.label })),
+    options: row.question_choices.map((c) => ({ id: c.option_key, label: c.label })),
   }));
 }
 
 export async function insertFollowupQuestions(questions: FollowupQuestionInsert[]): Promise<void> {
-  for (const q of questions) {
-    const { error: qErr } = await db.from('questions').insert({
-      id: q.id,
-      title: q.title,
-      hint: q.hint,
-      is_multi: q.isMulti,
-      layout: q.layout,
-      display_order: q.displayOrder,
-      source: 'ai',
-      ai_id: q.aiId,
-      question_category: q.category,
-    });
-    if (qErr) throw new DatabaseError(qErr.message);
-
-    const choiceRows = q.choices.map((c) => ({
-      question_id: q.id,
-      option_key: c.optionKey,
-      label: c.label,
-      display_order: c.displayOrder,
-    }));
-    const { error: cErr } = await db.from('question_choices').insert(choiceRows);
-    if (cErr) throw new DatabaseError(cErr.message);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const q of questions) {
+      await client.query(
+        `INSERT INTO questions (id, title, hint, is_multi, layout, display_order, source, ai_id, question_category)
+         VALUES ($1, $2, $3, $4, $5, $6, 'ai', $7, $8)`,
+        [q.id, q.title, q.hint, q.isMulti, q.layout, q.displayOrder, q.aiId, q.category],
+      );
+      for (const c of q.choices) {
+        await client.query(
+          `INSERT INTO question_choices (question_id, option_key, label, display_order)
+           VALUES ($1, $2, $3, $4)`,
+          [q.id, c.optionKey, c.label, c.displayOrder],
+        );
+      }
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
 }

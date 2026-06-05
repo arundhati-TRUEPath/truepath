@@ -6,7 +6,9 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from supabase import create_client, Client
+import psycopg2
+import psycopg2.extras
+from pgvector.psycopg2 import register_vector
 
 from embeddings.embed import embed_batch
 from ingest.excel_parser import extract_chunks as excel_chunks
@@ -18,8 +20,11 @@ _EMBED_BATCH_SIZE = 20
 logger = logging.getLogger(__name__)
 
 
-def _db() -> Client:
-    return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+def _connect():
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    register_vector(conn)
+    conn.autocommit = True
+    return conn
 
 
 def _download_from_blob() -> Path:
@@ -46,32 +51,47 @@ def _download_from_blob() -> Path:
     return tmp_dir
 
 
-def _upsert_document(db: Client, file_name: str, file_type: str, source_path: str) -> str:
-    result = (
-        db.table("rag_documents")
-        .upsert(
-            {"file_name": file_name, "file_type": file_type, "source_path": source_path},
-            on_conflict="file_name",
-        )
-        .execute()
+def _upsert_document(cur, file_name: str, file_type: str, source_path: str) -> str:
+    cur.execute(
+        """
+        INSERT INTO rag_documents (file_name, file_type, source_path)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (file_name) DO UPDATE
+          SET file_type   = EXCLUDED.file_type,
+              source_path = EXCLUDED.source_path,
+              updated_at  = now()
+        RETURNING id
+        """,
+        (file_name, file_type, source_path),
     )
-    return result.data[0]["id"]
+    return cur.fetchone()[0]
 
 
 def _upsert_chunks(
-    db: Client, document_id: str, chunks: list[dict], embeddings: list[list[float]]
+    cur, document_id: str, chunks: list[dict], embeddings: list[list[float]]
 ) -> None:
     rows = [
-        {
-            "document_id": document_id,
-            "chunk_index": chunk["chunk_index"],
-            "content": chunk["content"],
-            "embedding": embedding,
-            "metadata": chunk["metadata"],
-        }
+        (
+            document_id,
+            chunk["chunk_index"],
+            chunk["content"],
+            embedding,
+            psycopg2.extras.Json(chunk["metadata"]),
+        )
         for chunk, embedding in zip(chunks, embeddings)
     ]
-    db.table("rag_chunks").upsert(rows, on_conflict="document_id,chunk_index").execute()
+    psycopg2.extras.execute_values(
+        cur,
+        """
+        INSERT INTO rag_chunks (document_id, chunk_index, content, embedding, metadata)
+        VALUES %s
+        ON CONFLICT (document_id, chunk_index) DO UPDATE
+          SET content   = EXCLUDED.content,
+              embedding = EXCLUDED.embedding,
+              metadata  = EXCLUDED.metadata
+        """,
+        rows,
+    )
 
 
 def build_index(rag_data_dir: Path | None = None) -> dict:
@@ -86,7 +106,8 @@ def build_index(rag_data_dir: Path | None = None) -> dict:
     else:
         data_dir = _RAG_DATA_DIR
 
-    db = _db()
+    conn = _connect()
+    cur = conn.cursor()
     processed: list[dict] = []
     errors: list[dict] = []
 
@@ -106,21 +127,27 @@ def build_index(rag_data_dir: Path | None = None) -> dict:
             continue
 
         try:
-            doc_id = _upsert_document(db, file_path.name, file_type, str(file_path))
+            doc_id = _upsert_document(cur, file_path.name, file_type, str(file_path))
 
             texts = [c["content"] for c in chunks]
             all_embeddings: list[list[float]] = []
             for i in range(0, len(texts), _EMBED_BATCH_SIZE):
                 all_embeddings.extend(embed_batch(texts[i : i + _EMBED_BATCH_SIZE]))
 
-            _upsert_chunks(db, doc_id, chunks, all_embeddings)
-            db.table("rag_documents").update({"chunk_count": len(chunks)}).eq("id", doc_id).execute()
+            _upsert_chunks(cur, doc_id, chunks, all_embeddings)
+            cur.execute(
+                "UPDATE rag_documents SET chunk_count = %s WHERE id = %s",
+                (len(chunks), doc_id),
+            )
 
             logger.info("ingested %s (%d chunks)", file_path.name, len(chunks))
             processed.append({"file": file_path.name, "chunks": len(chunks)})
         except Exception as exc:
             logger.error("failed to ingest %s: %s", file_path.name, exc)
             errors.append({"file": file_path.name, "reason": str(exc)})
+
+    cur.close()
+    conn.close()
 
     if tmp_dir is not None:
         shutil.rmtree(tmp_dir, ignore_errors=True)

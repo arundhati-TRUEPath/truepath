@@ -4,7 +4,8 @@
 - **Subscription**: Gitlab TRUE Path DevOps (`b84e832c-ee7f-4b32-90d0-de721fed1a30`)
 - **Resource Group**: `Gitlab_TRUE_Path_rg`
 - **Environment name**: `truepath-staging-env`
-- **External services (unchanged)**: Supabase Cloud, OpenAI API
+- **External services**: OpenAI API
+- **Database**: Azure Database for PostgreSQL Flexible Server (`truepath-db`, North Central US)
 
 ---
 
@@ -24,26 +25,27 @@ Internet
 │  [truepath-backend]   ← Internal only                          │
 │    Express :4000  |  minReplicas: 1  |  maxReplicas: 3         │
 │    → calls truepath-python (internal)                           │
-│    → calls Supabase (external)                                  │
+│    → calls Azure PostgreSQL (external, TLS)                     │
 │    → calls OpenAI (external)                                    │
 │                                                                 │
 │  [truepath-python]    ← Internal only                           │
 │    FastAPI :8000  |  minReplicas: 1  |  maxReplicas: 3         │
-│    → calls Supabase (external)                                  │
+│    → calls Azure PostgreSQL (external, TLS)                     │
 │    → calls OpenAI (external)                                    │
 │                                                                 │
 │  [truepath-rag-job]   ← Scheduled Job (no ingress)              │
 │    Python indexer                                               │
 │    Schedule: 0 6 * * * UTC  |  on-demand trigger supported     │
 │    → reads from Azure Blob Storage (rag-data container)         │
-│    → writes vectors to Supabase pgvector                        │
+│    → writes vectors to Azure PostgreSQL pgvector                │
 └─────────────────────────────────────────────────────────────────┘
 
 Supporting resources (same resource group):
   truepathacr           Azure Container Registry  (image store)
-  truepath-kv           Azure Key Vault           (secrets)
+  truepath-kv-stg       Azure Key Vault           (secrets)
   truepathstorage       Azure Blob Storage        (rag-data container)
   truepath-logs         Log Analytics Workspace   (container logs)
+  truepath-db           Azure Database for PostgreSQL Flexible Server
 ```
 
 ### Key design decisions
@@ -54,6 +56,8 @@ Supporting resources (same resource group):
   Production may increase further based on load.
 - **Secrets**: All sensitive values stored in Key Vault, referenced via Managed Identity.
   Nothing in env files or source code.
+- **Database**: Shared Azure PostgreSQL Flexible Server (`truepath-db.postgres.database.azure.com`).
+  All connections use `sslmode=require`. Managed via `DATABASE_URL` secret in Key Vault.
 
 ---
 
@@ -131,7 +135,7 @@ Upload two files to Azure Cloud Shell — that's it. Every phase after this runs
 - [ ] **Contingency**: if name taken, use `truepathacrstg` — update `deploy-outputs.json`
 
 ### 2.3 — Log Analytics Workspace
-- [ ] `az monitor log-analytics workspace create --workspace-name truepath-logs --resource-group Gitlab_TRUE_Path_rg --location eastus`
+- [ ] `az monitor log-analytics workspace create --workspace-name truepath-logs --resource-group Gitlab_TRUE_Path_rg --location northcentralus`
 - [ ] Note the workspace ID (captured automatically by script)
 
 ### 2.4 — Container Apps Environment
@@ -139,10 +143,10 @@ Upload two files to Azure Cloud Shell — that's it. Every phase after this runs
 - [ ] Environment created and in `Succeeded` state
 
 ### 2.5 — Key Vault + secrets
-- [ ] `az keyvault create --name truepath-kv ...` (if name taken, use `truepath-kv-stg`)
+- [ ] `az keyvault create --name truepath-kv-stg ...`
 - [ ] `OPENAI-API-KEY` stored
-- [ ] `SUPABASE-URL` stored
-- [ ] `SUPABASE-SERVICE-KEY` stored
+- [ ] `DATABASE-URL` stored (Azure PostgreSQL connection string with sslmode=require)
+- [ ] `GITHUB-PAT` stored (for Phase 3 ACR build from GitHub)
 - [ ] Secret version-less URIs captured in `deploy-outputs.json`
 
 ### 2.6 — Storage Account + blob container (RAG data)
@@ -204,7 +208,6 @@ The script builds and pushes all three images using `az acr build`:
 ## Phase 4 — Deploy Container Apps
 
 > **Status: COMPLETE** — all 3 Container Apps deployed and running.
-> Frontend URL: `https://truepath-frontend.ashybush-4cbf3768.eastus.azurecontainerapps.io`
 >
 > **Automation script**: `scripts/deploy-phase4.ps1` — reads all resource IDs from `scripts/deploy-outputs.json`.
 > Idempotent: first run creates with full config; subsequent runs update the image only.
@@ -223,12 +226,10 @@ az containerapp create \
   --registry-identity <identity-resource-id> \
   --ingress internal --target-port 8000 \
   --min-replicas 1 --max-replicas 3 \
-  --secrets "openai-key=keyvaultref:<kv-secret-uri>,identityref:<identity-resource-id>" \
-            "supabase-url=keyvaultref:<kv-secret-uri>,identityref:<identity-resource-id>" \
-            "supabase-key=keyvaultref:<kv-secret-uri>,identityref:<identity-resource-id>" \
+  --secrets "openai-key=keyvaultref:<kv-openai-uri>,identityref:<identity-resource-id>" \
+            "database-url=keyvaultref:<kv-db-uri>,identityref:<identity-resource-id>" \
   --env-vars "OPENAI_API_KEY=secretref:openai-key" \
-             "SUPABASE_URL=secretref:supabase-url" \
-             "SUPABASE_SERVICE_KEY=secretref:supabase-key" \
+             "DATABASE_URL=secretref:database-url" \
              "STORAGE_MODE=local"
 ```
 - [ ] Container App created, status `Running`
@@ -246,14 +247,17 @@ az containerapp create \
   --registry-identity <identity-resource-id> \
   --ingress internal --target-port 4000 \
   --min-replicas 1 --max-replicas 3 \
-  --secrets "openai-key=keyvaultref:..." "supabase-url=keyvaultref:..." "supabase-key=keyvaultref:..." \
+  --secrets "openai-key=keyvaultref:<kv-openai-uri>,identityref:<identity-resource-id>" \
+            "database-url=keyvaultref:<kv-db-uri>,identityref:<identity-resource-id>" \
   --env-vars "OPENAI_API_KEY=secretref:openai-key" \
-             "SUPABASE_URL=secretref:supabase-url" \
-             "SUPABASE_SERVICE_KEY=secretref:supabase-key" \
+             "DATABASE_URL=secretref:database-url" \
              "PYTHON_SERVICES_URL=http://truepath-python" \
              "CORS_ORIGIN=https://truepath-frontend.<env-domain>" \
              "PORT=4000" \
-             "NODE_ENV=production"
+             "NODE_ENV=production" \
+             "OPENAI_MODEL=gpt-4o" \
+             "OPENAI_FOLLOWUP_MODEL=gpt-4.1-mini" \
+             "OPENAI_EMBEDDING_MODEL=text-embedding-3-small"
 ```
 - [ ] Container App created, status `Running`
 
@@ -271,7 +275,8 @@ az containerapp create \
   --min-replicas 1 --max-replicas 3 \
   --env-vars "BACKEND_URL=http://truepath-backend" \
              "NODE_ENV=production" \
-             "NEXT_TELEMETRY_DISABLED=1"
+             "NEXT_TELEMETRY_DISABLED=1" \
+             "NEXT_PUBLIC_ENV=staging"
 ```
 - [ ] Container App created, status `Running`
 - [ ] Note public URL from `az containerapp show` → `properties.configuration.ingress.fqdn`
@@ -305,29 +310,30 @@ az containerapp job create \
   --trigger-type Schedule \
   --cron-expression "0 6 * * *" \
   --replica-timeout 1800 \
-  --secrets "openai-key=keyvaultref:..." "supabase-url=keyvaultref:..." "supabase-key=keyvaultref:..." \
+  --secrets "openai-key=keyvaultref:<kv-openai-uri>,identityref:<identity-resource-id>" \
+            "database-url=keyvaultref:<kv-db-uri>,identityref:<identity-resource-id>" \
   --env-vars "OPENAI_API_KEY=secretref:openai-key" \
-             "SUPABASE_URL=secretref:supabase-url" \
-             "SUPABASE_SERVICE_KEY=secretref:supabase-key" \
+             "DATABASE_URL=secretref:database-url" \
              "STORAGE_MODE=azure" \
              "AZURE_STORAGE_ACCOUNT_NAME=truepathstorage" \
              "AZURE_STORAGE_CONTAINER=rag-data" \
+             "AZURE_CLIENT_ID=<managed-identity-client-id>" \
   --command "python" "run_indexer.py"
 ```
 - [ ] Job created
 - [ ] Trigger manual run: `az containerapp job start --name truepath-rag-job --resource-group Gitlab_TRUE_Path_rg`
 - [ ] Job completes successfully (check execution logs in Log Analytics)
-- [ ] Supabase `rag_chunks` table populated — verify row count
+- [ ] Azure PostgreSQL `rag_chunks` table populated — verify: `SELECT COUNT(*) FROM rag_chunks`
 
 ---
 
 ## Phase 6 — Staging Validation Checklist
 
 - [ ] Frontend loads at `https://<fqdn>.azurecontainerapps.io`
-- [ ] Intake questions load (Supabase read)
+- [ ] Intake questions load (Azure PostgreSQL read via Express)
 - [ ] Followup questions generate (OpenAI call via Express)
 - [ ] Skills page renders correctly
-- [ ] Pathways page renders with RAG context
+- [ ] Pathways page renders with RAG context (pgvector search via Python service)
 - [ ] PDF downloads successfully
 - [ ] No CORS errors in browser console
 - [ ] Logs visible in Azure portal → Container Apps → Log stream
@@ -345,23 +351,21 @@ az containerapp job create \
 | `NODE_ENV` | backend | env | `production` |
 | `CORS_ORIGIN` | backend | env | `https://<frontend-fqdn>` |
 | `PYTHON_SERVICES_URL` | backend | env | `http://truepath-python` |
-| `OPENAI_API_KEY` | backend, python | Key Vault | — |
+| `OPENAI_API_KEY` | backend, python | Key Vault (`OPENAI-API-KEY`) | — |
 | `OPENAI_MODEL` | backend | env | `gpt-4o` |
 | `OPENAI_FOLLOWUP_MODEL` | backend | env | `gpt-4.1-mini` |
-| `OPENAI_EMBEDDING_MODEL` | backend | env | `text-embedding-3-small` |
-| `OPENAI_SKILLS_MODEL` | backend | env | `gpt-4.1-mini` |
-| `SUPABASE_URL` | backend, python | Key Vault | — |
-| `SUPABASE_SERVICE_KEY` | backend, python | Key Vault | — |
+| `OPENAI_EMBEDDING_MODEL` | backend, python | env | `text-embedding-3-small` |
+| `DATABASE_URL` | backend, python | Key Vault (`DATABASE-URL`) | `postgresql://...@truepath-db.postgres.database.azure.com:5432/postgres?sslmode=require` |
 | `STORAGE_MODE` | python (rag-job) | env | `azure` |
 | `AZURE_STORAGE_ACCOUNT_NAME` | python (rag-job) | env | `truepathstorage` |
 | `AZURE_STORAGE_CONTAINER` | python (rag-job) | env | `rag-data` |
+| `AZURE_CLIENT_ID` | python (rag-job) | env | `<managed-identity-client-id>` |
 
 ---
 
 ## Future: Production Promotion Checklist (not in scope yet)
 
 - [ ] Increase minReplicas based on load testing results
-- [ ] Switch Supabase → Azure Database for PostgreSQL + pgvector
 - [ ] Switch OpenAI API → Azure OpenAI Service
 - [ ] Custom domain + Azure-managed TLS certificate
 - [ ] Azure Front Door or API Management for rate limiting

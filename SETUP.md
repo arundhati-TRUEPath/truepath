@@ -11,7 +11,7 @@
 
 You also need credentials for two external services before the app will run:
 
-- **Supabase** — PostgreSQL + pgvector (cloud-hosted, no local DB needed)
+- **Azure Database for PostgreSQL** — relational data + pgvector (shared staging instance; see team for `DATABASE_URL`)
 - **OpenAI** — LLM inference and embeddings
 
 ---
@@ -38,9 +38,9 @@ cd backend && npm install && cd ..
 
 # Python services
 cd services
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS / Linux
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS / Linux
 pip install -r requirements.txt
 cd ..
 ```
@@ -72,16 +72,14 @@ NEXT_PUBLIC_ANALYTICS_ENABLED=false
 PORT=4000
 CORS_ORIGIN=http://localhost:3000
 
-# Supabase
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_SERVICE_KEY=<service_role_key>
+# Database (Azure PostgreSQL — get connection string from team)
+DATABASE_URL=postgresql://<user>:<password>@truepath-db.postgres.database.azure.com:5432/postgres?sslmode=require
 
 # OpenAI
 OPENAI_API_KEY=<your-api-key>
 OPENAI_MODEL=gpt-4o
 OPENAI_FOLLOWUP_MODEL=gpt-4.1-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-OPENAI_SKILLS_MODEL=gpt-4.1-mini
 
 # Python services
 PYTHON_SERVICES_URL=http://localhost:8000
@@ -90,25 +88,32 @@ PYTHON_SERVICES_URL=http://localhost:8000
 ### services/.env
 
 ```env
+PORT=4000
+CORS_ORIGIN=http://localhost:3000
+
+# Database (Azure PostgreSQL — same connection string as backend)
+DATABASE_URL=postgresql://<user>:<password>@truepath-db.postgres.database.azure.com:5432/postgres?sslmode=require
+
 OPENAI_API_KEY=<your-api-key>
+OPENAI_MODEL=gpt-4o
+OPENAI_FOLLOWUP_MODEL=gpt-4.1-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_SERVICE_KEY=<service_role_key>
+
+PYTHON_SERVICES_URL=http://localhost:8000
 ```
 
 ---
 
 ## 4. Run Database Migrations
 
-Apply SQL migrations from `backend/src/db/migrations/` to your Supabase project.
-
-You can run them in order via the Supabase SQL Editor or psql:
+The staging database is already migrated. For a fresh local PostgreSQL instance, apply migrations using the Python runner:
 
 ```bash
-psql "<supabase-connection-string>" -f backend/src/db/migrations/<file>.sql
+# From repo root — reads DATABASE_URL from backend/.env automatically
+python scripts/run_migrations.py
 ```
 
-The Supabase connection string is available in the project dashboard under **Settings → Database → Connection string**.
+This applies migrations 001–007 in order. Requires `psycopg2-binary` (`pip install psycopg2-binary`).
 
 ---
 
@@ -120,8 +125,8 @@ Open three terminals from the repo root.
 
 ```bash
 cd services
-venv\Scripts\activate   # Windows
-python main.py
+.venv\Scripts\activate   # Windows
+uvicorn main:app --reload --port 8000
 ```
 
 **Terminal 2 — Backend API (port 4000)**
@@ -142,15 +147,17 @@ Open `http://localhost:3000` in your browser.
 
 ---
 
-## 6. Optional: Ingest RAG Data
+## 6. Optional: Re-index RAG Data
 
-If you need to populate the vector database with pathway data from `rag-data/`:
+If the `rag_chunks` table is empty or you've updated files in `rag-data/`:
 
 ```bash
 cd services
-venv\Scripts\activate
-python -c "from rag.indexer import build_index; build_index()"
+.venv\Scripts\activate
+python run_indexer.py
 ```
+
+This embeds all PDF and Excel files in `rag-data/` and upserts them into Azure PostgreSQL pgvector.
 
 ---
 
@@ -162,7 +169,7 @@ python -c "from rag.indexer import build_index; build_index()"
 | `frontend/` | `npm run lint` | ESLint |
 | `frontend/` | `npm run build` | Production build |
 | `backend/` | `npm run type-check` | TypeScript check |
-| `backend/` | `npm run test` | Vitest tests |
+| `backend/` | `npm run test` | Vitest integration tests |
 | `backend/` | `npm run test:watch` | Watch mode |
 
 ---
@@ -173,16 +180,18 @@ python -c "from rag.indexer import build_index; build_index()"
 Browser
   └── Next.js frontend  (port 3000)
         └── Express backend  (port 4000)
-              ├── Supabase (PostgreSQL + pgvector)  [cloud]
-              ├── OpenAI API                         [cloud]
+              ├── Azure PostgreSQL + pgvector  [cloud, shared]
+              ├── OpenAI API                   [cloud]
               └── FastAPI services  (port 8000)
-                    └── OpenAI API                   [cloud]
+                    ├── Azure PostgreSQL        [cloud, shared]
+                    └── OpenAI API              [cloud]
 ```
 
 Key design decisions:
 - No user accounts — sessions are stateless.
 - No raw user text input — all UI is pill/button selection.
 - LLM calls happen server-side only; the browser never talks to OpenAI directly.
+- All DB connections use TLS (`sslmode=require`).
 
 ---
 
@@ -191,7 +200,7 @@ Key design decisions:
 | File | Purpose |
 |------|---------|
 | `CLAUDE.md` | Engineering constitution — hard rules for all code |
-| `WORKFLOW.md` | Development workflow |
 | `docs/ARCHITECTURE.md` | Full system design and request flows |
 | `docs/PROJECT_CHARTER.md` | Product vision and MVP scope |
 | `backend/src/config.ts` | All environment variable handling |
+| `scripts/run_migrations.py` | Database migration runner |

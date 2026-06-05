@@ -1,6 +1,6 @@
 -- Migration 003: Refactor questions schema
 -- Drops and recreates questions, question_choices, session_responses with new structure.
--- Execute this in the Supabase SQL editor. Existing data will be cleared.
+-- Run via scripts/run_migrations.py or psql. Existing data will be cleared.
 
 -- 1. Drop tables in dependency order
 DROP TABLE IF EXISTS session_responses;

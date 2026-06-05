@@ -1,6 +1,6 @@
 -- Migration 005: RAG document store and vector chunks
--- RECONSTRUCTED: this migration was applied in Supabase but never committed to the repo.
--- Cross-check against Supabase schema if the pg_dump backup is available.
+-- Migration 005: RAG document store.
+-- Originally applied only in Supabase; reconstructed and committed during Azure migration.
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE IF NOT EXISTS rag_documents (

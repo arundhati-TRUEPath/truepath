@@ -309,7 +309,7 @@
 <line x1="418" y1="660" x2="418" y2="676" stroke="#107C10" stroke-width="2" marker-end="url(#ag)"/>
 <!-- Python down arrow through boundary -->
 <line x1="690" y1="660" x2="690" y2="676" stroke="#107C10" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#ag)" opacity=".7"/>
-<!-- RAG Job down arrow to Supabase -->
+<!-- RAG Job down arrow to Azure PostgreSQL -->
 <line x1="238" y1="660" x2="238" y2="676" stroke="#107C10" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#ag)" opacity=".7"/>
 
 <!-- Backend → OpenAI exit -->

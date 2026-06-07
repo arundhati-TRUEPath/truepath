@@ -48,3 +48,35 @@ metadata:
 - Never log inside a loop unless the iteration count is bounded and small.
 - Do not log at every function call — log at the entry and exit of service boundaries only.
 - Repeated identical logs in a short window should be sampled or rate-limited — not emitted on every occurrence.
+
+## End-to-End Request ID Propagation Contract
+
+- Every inbound HTTP request either accepts an `x-request-id` header (forwarded from the caller) or mints a new UUIDv7. UUIDv7 is required — not UUIDv4 — because it is time-ordered and cannot be duplicated across restarts.
+- The same `requestId` flows through the entire call chain: **browser fetch → Express middleware → Python FastAPI → LLM call telemetry**. Breaking this chain at any boundary is a bug.
+- Express forwards `x-request-id` on every outbound call to the Python service (`backend/src/services/embeddings.ts`, `backend/src/services/rag.ts`).
+- Python adopts the inbound `x-request-id` as its own request ID. It does not generate a new ID if one is provided.
+- The `requestId` is included in every LLM call log line (see `const_llm.md`).
+- CORS configuration includes `x-request-id` in `Access-Control-Allow-Headers`.
+
+## App Insights as the Single Observability Surface
+
+- `@azure/monitor-opentelemetry` (Node/Express) and `azure-monitor-opentelemetry` (Python/FastAPI) are required in all three runtimes.
+- The `APPLICATIONINSIGHTS_CONNECTION_STRING` is loaded from Key Vault via `secretref:` at Container Apps startup — the same pattern as other secrets.
+- App Insights is the authoritative view for end-to-end traces, dependency maps, and performance metrics. Log Analytics raw queries supplement it but do not replace it.
+- Auto-instrumentation covers HTTP, pg, psycopg2, and outbound fetch/httpx. Do not disable auto-instrumentation.
+
+## Behavior Metrics Catalog
+
+Emit these as custom App Insights events (`trackEvent`) at the named points in the user flow:
+
+| Event name | When | Properties |
+|---|---|---|
+| `session_started` | New session created | `sessionId`, `requestId` |
+| `intake_submitted` | Intake answers saved | `sessionId`, `requestId` |
+| `skills_confirmed` | Skills confirmed by user | `sessionId`, `requestId` |
+| `pathways_viewed` | Pathway recommendations rendered | `sessionId`, `requestId` |
+| `plan_generated` | Career plan generated | `sessionId`, `requestId`, `latencyMs` |
+| `pdf_downloaded` | PDF download triggered | `sessionId`, `requestId` |
+| `page_time` | User navigates away from a wizard step | `step`, `durationMs`, `sessionId` |
+
+These events power the behavior dashboards in Phase 8 and must not be removed or renamed without updating the dashboard KQL queries.

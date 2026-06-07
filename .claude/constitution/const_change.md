@@ -46,3 +46,17 @@ metadata:
 - Feature flags wrap changes to shared infrastructure that cannot be rolled back instantly.
 - Database migrations run before code deploys — never after, never simultaneously.
 - If a rollback would require running a destructive down migration against production data, the change strategy is wrong — redesign to be additive before merging.
+
+## Feature Flags for Risky Boundary Changes
+
+Risky boundary changes are those that affect the auth model, DB auth method, or LLM provider. These three changes require the following discipline:
+
+1. **Ship disabled.** The new code path is behind an env flag (`AUTH_ENFORCED`, `DB_AUTH_MODE`, `LLM_PROVIDER`). The default is the old behavior. The new code is deployed but not active.
+2. **Smoke test with the flag.** Flip the flag on staging and run the full end-to-end smoke test (see `docs/ENTERPRISE_READINESS_PROGRAM.md`).
+3. **Soak.** Leave the flag enabled for the documented soak window (default: 24 hours on staging) before considering the cutover complete.
+4. **Document.** Record the flag, its current state, and the soak window in the decision log in `docs/ENTERPRISE_READINESS_PROGRAM.md`.
+5. **Remove.** In the follow-up cleanup PR (Phase 8), remove the flag and the old code path entirely. No permanent flags.
+
+Applying a flag to a change that does not require it is waste. Skipping a flag on a change that does require it is a production risk.
+
+The three active flags for the enterprise-readiness program are: `AUTH_ENFORCED`, `DB_AUTH_MODE`, `LLM_PROVIDER`. All three are removed in Phase 8.

@@ -61,4 +61,21 @@ metadata:
 
 - Always pair a Zod schema with each LLM output. The Zod schema is the server-side contract; the prompt is the generation guide.
 - Keep Zod and the prompt in sync — when a field is added to the schema, add a corresponding rule to the prompt.
-- On Zod validation failure, log `event: 'llm_response_invalid'` with `issues` and `raw` before throwing. Never silently retry.
+- On Zod validation failure, log `event: 'llm_response_invalid'` with `issues` and a sanitized `rawPreview` (first 200 chars, PII-stripped) before throwing. Never log the full raw response. Never silently retry.
+
+## Prompt Versioning
+
+- Every prompt file exports a version constant alongside the prompt string:
+  ```ts
+  export const FOLLOWUP_SYSTEM_PROMPT_VERSION = 1;
+  export const FOLLOWUP_SYSTEM_PROMPT = `...`;
+  ```
+- The version constant is incremented whenever the prompt text changes — even minor wording changes.
+- The version is logged with every LLM call (see `const_llm.md` — the `promptVersion` field). This makes it possible to correlate unexpected model behavior with a specific prompt change.
+- Version numbers are monotonically increasing integers. Never reset to 1 after an increment.
+
+## No PII in System Prompts
+
+- System prompts are fully static — no template literals, no injected variables, no user data.
+- The user's intake answers, name, location, finances, and any personal details go in the **user message** (second turn), never in the system prompt.
+- This rule exists for two reasons: (1) prompt caching requires a static prefix; (2) PII in the system prompt is harder to audit and redact than PII in the user message.

@@ -31,8 +31,7 @@
 14. [Non-Functional Requirements](#14-non-functional-requirements)
 15. [Risks & Mitigations](#15-risks--mitigations)
 16. [Roadmap & Dependencies](#16-roadmap--dependencies)
-17. [Open Questions](#17-open-questions)
-18. [Appendix: Scoring Tier Tables](#18-appendix-scoring-tier-tables)
+17. [Appendix: Scoring Tier Tables](#18-appendix-scoring-tier-tables)
 
 ---
 
@@ -81,13 +80,6 @@ The engine is considered production-ready when:
 | Persona | Role | Interaction with Scoring Engine |
 |---|---|---|
 | **Job Seeker** | End user (e.g., Maria — 34yo, former caregiver, needs income in 3–6 months) | Answers intake questions; sees ranked career cards with plain-language explanations. Never sees scores or component values. |
-| **Case Manager** | WDC staff reviewing recommendations | Sees full scoring trace (all component values), can inspect any result, approves or overrides before delivery to job seeker. |
-| **Program Administrator** | CPS/WDC leadership | Accesses audit logs, aggregate analytics, and system configuration (thresholds, weights, tier boundaries). |
-
-### Non-Users (Explicitly Out of Scope)
-
-- Employers and hiring managers do not interact with the system.
-- Training providers see only aggregate referral counts, never individual scoring data.
 
 ---
 
@@ -563,7 +555,7 @@ LLM-generated text shall pass validation ≥ 95% of the time. Failures shall be 
 - 20 pathway tracks across 6 pathway categories
 - King County ETPL programs
 - Case-manager review interface
-- Audit logging
+
 
 ### v1.1 — Expansion
 
@@ -587,18 +579,6 @@ LLM-generated text shall pass validation ≥ 95% of the time. Failures shall be 
 | WA In-Demand Occupations List (2026) | WDC Policy | Pending annual release |
 | Azure OpenAI provisioning (Private Link) | CPS IT | Complete |
 | Case-manager UI build | Engineering | In progress |
-
----
-
-## 17. Open Questions
-
-| # | Question | Decision Needed By | Owner |
-|---|---|---|---|
-| 1 | Should the 78 display threshold be adjustable per pathway cluster, or global? | Pre-pilot | Product |
-| 2 | What is the minimum number of top cards before triggering the circuit-breaker? (Currently: any count ≥ 1 is valid) | Pre-pilot | Product |
-| 3 | Should `quality_fit = 0.6` for no-data programs be visible to job seekers, or only case managers? | Pre-pilot | Product + WDC |
-| 4 | How should the system handle occupations that span multiple SOC codes? | v1.1 | Engineering |
-| 5 | What is the retention period for raw intake answers vs. scoring traces? | Pre-pilot | Legal + WDC |
 
 ---
 

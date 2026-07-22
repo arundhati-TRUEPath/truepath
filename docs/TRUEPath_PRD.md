@@ -5,11 +5,10 @@
 |---|---|
 | **Product** | TRUEPath Navigator |
 | **Module** | AI Scoring Engine & Recommendation Pipeline |
-| **Owner** | Arundhati · Senior PM, Career Path Services |
-| **Partnership** | Seattle–King County Workforce Development Council (SeaKing WDC) |
-| **Version** | PRD v1.0 — July 2026 |
+| **Owner** | Arundhati . PM, Career Path Services |
+| **Version** | PRD v2.0 — July 2026 |
 | **Status** | Draft |
-| **Stakeholders** | CPS leadership, SeaKing WDC program staff, IT/engineering, case managers |
+| **Stakeholders** | CPS leadership, SeaKing WDC program staff, case managers |
 | **Data Sources** | O\*NET 30.3, WA ETPL, BLS OOH, WA DOH Licensing, WA In-Demand Occupations List |
 
 ---

@@ -2,7 +2,6 @@
 
 **July 20–22, 2026**
 
-**Sources:** Feedback_07_20.pdf (live session, 9 items) · TRUE_Path_Navigator_Feedback_JS_7_20_2026.docx (Jasmine field testing, 6 items) · Feedback_07_21_results.xlsx (in-app votes, 25 items)
 
 ---
 

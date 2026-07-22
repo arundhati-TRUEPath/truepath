@@ -5,8 +5,8 @@
 
 ---
 
-| # | Source | Tester | Feedback | Status |
-|---|--------|--------|----------|--------|
+| # | Source | Tester | Feedback | Status |Need to fixed by 07/06|
+|---|--------|--------|----------|--------|--------|
 | 1 | Live session (PDF) | Arundhati | Fallback message: "We could not find in-demand healthcare roles with training near you yet. A case manager can help explore options." — needs more to go on. | Fixed |
 | 2 | Live session (PDF) | Harpreet | Why are the jobs not in the right order? (Screenshot shows S × I × F scoring table — Medical Equipment Preparers scored 0.191, Pharmacy Technicians 0.153, Radiologic Technologists 0.183, but display order didn't match score order.) | Open |
 | 3 | Live session (PDF) | Andy | Veterinary Technologists and Technicians appearing as a recommendation — not a human healthcare position. Screenshot shows result card for Spokane with $54,845/year, training programs listed from Spokane Colleges and Carrington College. | Open |

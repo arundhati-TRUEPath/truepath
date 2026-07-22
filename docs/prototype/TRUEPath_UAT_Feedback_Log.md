@@ -49,6 +49,7 @@
 | V-23 | In-app vote (XLSX) | Arundhati | Thumbs down. (No additional comment.) Roles shown: Medical Equipment Preparers, Medical Transcriptionists, Occupational Health and Safety Specialists. | N/A |
 | V-24 | In-app vote (XLSX) | Sean | Thumbs up. "test". Roles shown: Exercise Physiologists, Medical Equipment Preparers, Occupational Health and Safety Specialists. | N/A |
 | V-25 | In-app vote (XLSX) | Jamie | Thumbs up. "nice". | N/A |
+
 Findings by Theme
 
 Recommendation Quality and Alignment with User Preferences

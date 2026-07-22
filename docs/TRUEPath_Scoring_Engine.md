@@ -6,7 +6,7 @@
 
 | Key | Value |
 |---|---|
-| **Audience** | Junior–mid developers on the TRUEPath team |
+| **Audience** | Dev on the TRUEPath team |
 | **Prereqs** | Basic JS/Python, SQL queries, REST API concepts |
 | **Stack context** | Node.js or Python backend, PostgreSQL, Azure OpenAI (LLM layer) |
 | **Data sources** | O\*NET 30.3 API, WA ETPL database, BLS OOH, WA DOH licensing tables |

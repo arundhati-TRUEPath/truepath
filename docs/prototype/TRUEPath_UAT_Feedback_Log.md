@@ -50,21 +50,27 @@
 | V-24 | In-app vote (XLSX) | Sean | Thumbs up. "test". Roles shown: Exercise Physiologists, Medical Equipment Preparers, Occupational Health and Safety Specialists. | N/A |
 | V-25 | In-app vote (XLSX) | Jamie | Thumbs up. "nice". | N/A |
 Findings by Theme
-1. Recommendation Quality and Alignment with User Preferences
+
+Recommendation Quality and Alignment with User Preferences
 This was the most frequently raised concern. Multiple testers reported that the pathway recommendations did not align well with the preferences they had entered during intake.
 Preference mismatches: Several testers noted that they selected behind-the-scenes, supportive, or non-clinical preferences, yet received hands-on clinical roles like Massage Therapists, Dental Assistants, and Phlebotomists (Kelli, Lise N, Maeve). Kelli specifically noted she had not seen any medical administrative or supportive roles suggested across multiple tests.
 Blood/needle contradiction: Maeve and Kelli both flagged that even after selecting “would rather not” for blood and needles and confirming that choice, the tool still recommended roles involving bodily fluids (e.g., Phlebotomist, Orderlies). Only one of three results in Maeve’s test matched her stated preference.
+
 Timeline mismatches: Andy and Sasha both noted that when they selected “less than 3 months,” the tool returned roles requiring 1–2 years of training (e.g., Pharmacy Technician, Dental Assistant). Only one of three results matched the stated urgency.
 CNA credential not leveraged: Lise N observed that when testing a persona who already held a CNA credential and was returning to work, the tool listed Nursing Assistant as a new option rather than presenting advancement pathways such as CNA-to-LPN or CNA-to-MA.
+
 Veterinary roles appearing: Andy flagged Veterinary Technologists and Technicians and Veterinary Assistants appearing in healthcare career results, questioning their alignment with human healthcare and BLS in-demand data.
 Missing role categories: Multiple testers (Andy, Lise N, Kelli) expected to see medical administrative roles (front desk, medical billing, medical coding) and behavioral health pathways but did not encounter them. Lise N specifically referenced WA’s Behavioral Health Pathways initiative.
+
 Scoring sort order: Harpreet asked why jobs were not displayed in the expected order, attaching a screenshot of the S × I × F score table showing the multiplicative algorithm producing a result order that felt unintuitive.
-2. Training Provider Locality
+
+Training Provider Locality
 Across both Spokane and Franklin County tests, testers found that the training programs shown were not geographically relevant to the user’s location.
 Spokane tests: Andy entered a Spokane ZIP code and the top result was well-aligned in terms of job type and time-to-employment, but the training options listed were all outside the area (Walla Walla, Yakima, Renton). Local Spokane-area training providers were not surfaced.
 Franklin County tests: Jasmine tested with ZIP codes for both Benton (99352) and Franklin (99301) counties — two highly integrated counties that share a health department, a WorkSource, and training providers. Training results showed options across the state rather than in the local or neighboring area. An external tester’s nursing student scenario also returned out-of-area training providers despite eligible local options existing in Franklin and surrounding counties.
 Cami noted: For Spokane, local resource referrals included St. Vincent de Paul but no reference to a WorkSource center.
-3. Missing Wage and Demand Data
+
+Missing Wage and Demand Data
 Several testers encountered results where wage information was unavailable or inconsistent.
 Inconsistent wage display: Jasmine observed that the top-right area of a result card showed “Wage not available” while the career pathway ladder in the lower-left section of the same card displayed a wage range ($38k–$46k). This was flagged as confusing.
 Missing wage data: Maeve and Nicole noted Personal Care Aides showing no wage or job-opening data, yet the narrative text stated there was “high demand.” Nicole called it unrealistic to rely on demand claims without supporting data. Jasmine’s external tester’s nursing student scenario also showed missing wages on two of three options.

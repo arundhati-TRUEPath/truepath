@@ -97,15 +97,4 @@ The system prompt sent to the LLM on each turn includes:
 - **Generated questions are capped.** Maximum 2 LLM-generated questions per intake. If the LLM needs more than 2, that signals the bank has a serious gap — flag for product review.
 - **Fallback to deterministic.** If the LLM API is slow (over 2 seconds) or fails, the system falls back to deterministic information-gain calculation to pick the next question from the bank. The user never waits or sees an error.
 
-### LLM cost and performance
-
-| Metric | Estimate |
-|---|---|
-| Prompt size per turn | ~4,000–6,000 tokens (50 questions + conversation history + occupation list) |
-| Response size | ~100–300 tokens (question source + ID + rephrased text + mappings + reasoning) |
-| Latency per turn | 500–1,200ms (acceptable for conversational chat) |
-| Cost per full intake (8 questions) | ~$0.04–0.08 using Claude Sonnet |
-| Generated questions per intake | Expected 0–1 on average, capped at 2 |
-| Fallback if LLM fails | Deterministic information-gain calculation (under 50ms) |
-
 **Bottom line:** The 50-question bank is the LLM's primary menu. The user's answers shrink the occupation list. The LLM reads both and picks the best next question from the bank — or generates a new one when the bank does not have a question that fits. Generated questions get logged and reviewed so the bank grows over time. Scoring and elimination stay math-based. The LLM decides what to ask and how to say it.

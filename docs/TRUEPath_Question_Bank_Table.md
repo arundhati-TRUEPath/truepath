@@ -103,3 +103,15 @@ All questions, keys, answer values, and display labels in table format.
 | | | | | `growth` | A path that grows, even if it takes longer | | |
 | Q19 | `future_path` | Want to also see careers you could work toward later, with more training? | Optional — it just adds a longer-term section; it changes nothing else. | `yes` | Yes, show me | yesno | — |
 | | | | | `no` | No, just what I can start now | | |
+
+Two follow-ups that only appear when triggered
+
+You said you'd rather not be around blood, needles, or bodily fluids. That usually rules out roles like nursing assistant and phlebotomy. Leave those off, or still see them?
+
+Right — leave those off
+Actually, show me those too
+
+You said you want a lot of patient contact but also to work from home. Those pull in different directions — which matters more?
+
+Being with patients
+Working from home

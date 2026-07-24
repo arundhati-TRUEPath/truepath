@@ -36,12 +36,12 @@ All questions, keys, answer values, and display labels in table format.
 | | | | | `could_learn` | Could learn to be | | |
 | | | | | `rather_not` | Would rather not | | |
 | Q7 | `pace` | Which pace suits you better? | Some roles are fast and unpredictable, others steady and routine. | `fast` | Fast and unpredictable | single_select | — |
-| | | | | `steady` | Steady and routine | | |
+| | | | | `steady` | Steady and routine | | | unsure (option)
 | Q8 | `setting` | Where would you rather work? | Setting shapes the day-to-day as much as the job title. | `hospital` | Hospital | single_select | — |
 | | | | | `clinic` | Clinic or office | | |
 | | | | | `home` | People's homes | | |
 | | | | | `remote` | Remote / from home | | |
-| | | | | `field` | Out in the field | | |
+| | | | | `field` | Out in the field *** Out in the community | | |
 
 ---
 
@@ -72,7 +72,7 @@ All questions, keys, answer values, and display labels in table format.
 
 | Q# | Key | Question | Helper Text | Value | Label | Type | Condition |
 |---|---|---|---|---|---|---|---|
-| Q12 | `shifts` | Which shifts can you realistically work? | Roles differ a lot on when the work happens. | `days` | Days only | multi_select | — |
+| Q12 | `shifts` | Which shifts can you realistically work? | Roles differ a lot on when the work happens. | `days` | Days only ** Day| multi_select | — |
 | | | | | `evenings` | Evenings OK | | |
 | | | | | `nights` | Nights OK | | |
 | | | | | `weekends` | Weekends OK | | |
@@ -85,7 +85,7 @@ All questions, keys, answer values, and display labels in table format.
 | Q15 | `vehicle` | Do you have a driver's license and reliable vehicle? | This affects which programs and jobs are reachable. | `yes` | Yes | single_select | — |
 | | | | | `license_no_vehicle` | License, no reliable vehicle | | |
 | | | | | `neither` | Neither | | |
-| Q16 | `english` | How comfortable are you using English in fast or medical settings? | This never lowers your matches; it helps us find roles where the fit is right. | `basic` | Basic | single_select | `patient_contact ∈ {a_lot, some}` |
+| Q16 | `english` | How comfortable are you using English in fast or medical settings? *** How confident and fluent are you when communicating in English in fast-paced or medical settings?  | This never lowers your matches; it helps us find roles where the fit is right. | `basic` | Basic | single_select | `patient_contact ∈ {a_lot, some}` |
 | | | | | `conversational` | Conversational | | |
 | | | | | `professional` | Professional | | |
 | Q17 | `supports` | Would any of these help you finish training? | These never affect your matches; they help your case manager line up support. ⚠️ Sensitive: excluded from scoring. | `transportation` | Transportation | multi_select (sensitive) | — |
